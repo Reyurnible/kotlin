@@ -24,6 +24,7 @@ import org.jetbrains.kotlin.load.kotlin.ModuleVisibilityManager
 import org.jetbrains.kotlin.load.kotlin.getSourceElement
 import org.jetbrains.kotlin.load.kotlin.isContainedByCompiledPartOfOurModule
 import org.jetbrains.kotlin.modules.Module
+import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.resolve.lazy.descriptors.LazyPackageDescriptor
 import org.jetbrains.kotlin.resolve.source.KotlinSourceElement
 import org.jetbrains.kotlin.util.ModuleVisibilityHelper
@@ -44,8 +45,18 @@ class ModuleVisibilityHelperImpl : ModuleVisibilityHelper {
 
         val moduleVisibilityManager = ModuleVisibilityManager.SERVICE.getInstance(project)
 
+        fun findModule(kotlinFile: KtFile): Module? = moduleVisibilityManager.chunk.firstOrNull { it.getSourceFiles().containsRaw(kotlinFile.viewProvider.virtualFile.canonicalPath) }
+
         val whatSource = getSourceElement(what)
-        if (whatSource is KotlinSourceElement) return true
+        if (whatSource is KotlinSourceElement) {
+            if (moduleVisibilityManager.chunk.size > 1 && fromSource is KotlinSourceElement) {
+                val fromSourceKotlinFile = fromSource.psi.getContainingJetFile()
+                val whatSourceKotlinFile = whatSource.psi.getContainingJetFile()
+                return findModule(whatSourceKotlinFile) === findModule(fromSourceKotlinFile)
+            }
+
+            return true
+        }
 
         val modules = moduleVisibilityManager.chunk.toList()
         val outputDirectories = modules.map { File(it.getOutputDirectory()) }
@@ -56,7 +67,7 @@ class ModuleVisibilityHelperImpl : ModuleVisibilityHelper {
         }
 
         // Hack in order to allow access to internal elements in production code from tests
-        if (modules.size() == 1 && modules[0].getModuleType() == ModuleXmlParser.TYPE_TEST) return true
+        if (modules.size == 1 && modules[0].getModuleType() == ModuleXmlParser.TYPE_TEST) return true
 
         return false
     }

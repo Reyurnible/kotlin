@@ -1,3 +1,5 @@
+@file:InternalTestAnnotation
+
 package test
 
 import test.InternalClass1

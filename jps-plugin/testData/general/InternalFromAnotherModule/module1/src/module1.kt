@@ -1,4 +1,7 @@
 package test
+@Target(AnnotationTarget.FILE)
+@Retention(AnnotationRetention.SOURCE)
+internal annotation class InternalTestAnnotation()
 
 internal open class InternalClass1
 
