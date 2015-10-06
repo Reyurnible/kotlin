@@ -1,0 +1,7 @@
+package a
+
+internal class A
+
+internal fun a(): String {
+    return ":)"
+}
