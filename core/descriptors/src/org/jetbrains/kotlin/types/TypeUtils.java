@@ -612,6 +612,55 @@ public class TypeUtils {
         return null;
     }
 
+    public static Collection<KtType> boundClosure(Collection<KtType> types) {
+        if (types.size() == 0) return types;
+
+        Set<KtType> result = new HashSet<KtType>(types);
+        Set<KtType> elementsToCheck = result;
+        int oldSize = 0;
+        int size = result.size();
+        while (size > oldSize) {
+            oldSize = size;
+            Set<KtType> toAdd = new HashSet<KtType>();
+            for (KtType type : elementsToCheck) {
+                TypeParameterDescriptor typeParameterDescriptor = getTypeParameterDescriptorOrNull(type);
+                if (typeParameterDescriptor != null) {
+                    toAdd.addAll(typeParameterDescriptor.getUpperBounds());
+                }
+            }
+            result.addAll(toAdd);
+            elementsToCheck = toAdd;
+            size = result.size();
+        }
+
+        return result;
+    }
+
+    public static Collection<KtType> constituentTypes(Collection<KtType> types) {
+        if (types.size() == 0) return types;
+
+        Set<KtType> result = new HashSet<KtType>(types);
+        Set<KtType> elementsToCheck = result;
+        int oldSize = 0;
+        int size = result.size();
+        while (size > oldSize) {
+            oldSize = size;
+            Set<KtType> toAdd = new HashSet<KtType>();
+            for (KtType type : elementsToCheck) {
+                for (TypeProjection typeProjection : type.getArguments()) {
+                    if (!typeProjection.isStarProjection()) {
+                        toAdd.add(typeProjection.getType());
+                    }
+                }
+            }
+            result.addAll(toAdd);
+            elementsToCheck = toAdd;
+            size = result.size();
+        }
+
+        return result;
+    }
+
     private static abstract class AbstractTypeWithKnownNullability extends AbstractKtType {
         private final KtType delegate;
 
