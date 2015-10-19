@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.codegen.context;
 
+import com.intellij.psi.PsiElement;
 import kotlin.jvm.functions.Function0;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -24,9 +25,12 @@ import org.jetbrains.kotlin.codegen.binding.MutableClosure;
 import org.jetbrains.kotlin.codegen.state.GenerationState;
 import org.jetbrains.kotlin.codegen.state.JetTypeMapper;
 import org.jetbrains.kotlin.descriptors.*;
+import org.jetbrains.kotlin.psi.KtClass;
 import org.jetbrains.kotlin.psi.KtFile;
+import org.jetbrains.kotlin.psi.KtObjectDeclaration;
 import org.jetbrains.kotlin.psi.KtSuperExpression;
 import org.jetbrains.kotlin.resolve.BindingContext;
+import org.jetbrains.kotlin.resolve.DescriptorToSourceUtils;
 import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.storage.LockBasedStorageManager;
 import org.jetbrains.kotlin.storage.NullableLazyValue;
@@ -36,6 +40,8 @@ import org.jetbrains.org.objectweb.asm.Type;
 import java.util.*;
 
 import static org.jetbrains.kotlin.codegen.AsmUtil.getVisibilityAccessFlag;
+import static org.jetbrains.kotlin.codegen.binding.CodegenBinding.CLOSURE;
+import static org.jetbrains.kotlin.resolve.BindingContext.CLASS;
 import static org.jetbrains.kotlin.resolve.BindingContext.NEED_SYNTHETIC_ACCESSOR;
 import static org.jetbrains.org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.jetbrains.org.objectweb.asm.Opcodes.ACC_PROTECTED;
@@ -206,7 +212,25 @@ public abstract class CodegenContext<T extends DeclarationDescriptor> {
 
     @NotNull
     public ClassContext intoClass(ClassDescriptor descriptor, OwnerKind kind, GenerationState state) {
-        return new ClassContext(state.getTypeMapper(), descriptor, kind, this, null);
+        if (descriptor.isCompanionObject()) {
+            CodegenContext companionContext = this.findChildContext(descriptor);
+            if (companionContext != null) {
+                return (ClassContext) companionContext;
+            }
+        }
+        ClassContext classContext = new ClassContext(state.getTypeMapper(), descriptor, kind, this, null);
+
+        //We can't call descriptor.getCompanionObjectDescriptor() on light class generation
+        // because it triggers companion light class generation via putting it to BindingContext.CLASS
+        // (so MemberCodegen doesn't skip it in genClassOrObject).
+        if (state.getTypeMapper().getClassBuilderMode() != ClassBuilderMode.LIGHT_CLASSES &&
+            !descriptor.isCompanionObject() &&
+            descriptor.getCompanionObjectDescriptor() != null) {
+            //We need to create companion object context ahead of time
+            // because otherwise we can't generate synthetic accessor for private members in companion object
+            classContext.intoClass(descriptor.getCompanionObjectDescriptor(), kind, state);
+        }
+        return classContext;
     }
 
     @NotNull
