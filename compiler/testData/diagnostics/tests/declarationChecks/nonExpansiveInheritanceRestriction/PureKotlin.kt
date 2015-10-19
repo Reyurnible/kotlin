@@ -8,9 +8,10 @@ interface C0<<!EXPANSIVE_INHERITANCE!>X<!>> : N0<N0<C0<C0<X>>>>
 
 interface N1<in T>
 interface C1<<!EXPANSIVE_INHERITANCE!>X<!>> : N1<N1<C1<C1<X?>>>>
+interface C2<T> : C1<C1<T>>
 
 interface C<<!EXPANSIVE_INHERITANCE!>X<!>> : D<P<X, X>>
-interface P<<!EXPANSIVE_INHERITANCE!>Y1<!>, Y2> : Q<C<Y1>, C<D<Y2>>>
+interface P<Y1, <!EXPANSIVE_INHERITANCE!>Y2<!>> : Q<C<Y1>, C<D<Y2>>>
 interface Q<Z1, Z2>
 interface D<W>
 

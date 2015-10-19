@@ -16,91 +16,103 @@
 
 package org.jetbrains.kotlin.resolve
 
+import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.SourceElement
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.diagnostics.DiagnosticSink
 import org.jetbrains.kotlin.diagnostics.Errors
-import org.jetbrains.kotlin.psi.JetClass
-import org.jetbrains.kotlin.types.JetType
+import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameUnsafe
+import org.jetbrains.kotlin.types.KtType
+import org.jetbrains.kotlin.types.TypeConstructor
 import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.types.typeUtil.boundClosure
+import org.jetbrains.kotlin.types.typeUtil.constituentTypes
 import org.jetbrains.kotlin.utils.DFS
 
 public object NonExpansiveInheritanceRestrictionChecker {
     @JvmStatic
     fun check(
-            declaration: JetClass,
-            type: JetType,
+            declaration: KtClass,
+            classDescriptor: ClassDescriptor,
             diagnosticHolder: DiagnosticSink
     ) {
-
-        if (type.constructor.parameters.isEmpty()) return
-
-        val (expansiveEdges, edgeLists) = buildGraph(type)
-
-        for ((first, second) in expansiveEdges) {
-            val reachable = collectReachable(second, edgeLists)
-            if (first in reachable) {
-                val typeParameter = reachable.firstOrNull { it in type.constructor.parameters } ?: first
-                val element = DescriptorToSourceUtils.descriptorToDeclaration(typeParameter) ?: declaration
-                diagnosticHolder.report(Errors.EXPANSIVE_INHERITANCE.on(element))
-                break;
-            }
-        }
-    }
-
-    private fun buildGraph(type: JetType): Pair<Set<Pair<TypeParameterDescriptor, TypeParameterDescriptor>>, Map<TypeParameterDescriptor, Set<TypeParameterDescriptor>>> {
-        val processedTypes = hashSetOf<JetType>()
-
-        val expansiveEdges = linkedSetOf<Pair<TypeParameterDescriptor, TypeParameterDescriptor>>()
-        val edgeLists = hashMapOf<TypeParameterDescriptor, MutableSet<TypeParameterDescriptor>>()
-
-        doBuildGraph(type, processedTypes, expansiveEdges, edgeLists)
-        return Pair(expansiveEdges, edgeLists)
-    }
-
-    private fun doBuildGraph(
-            type: JetType,
-            processedTypes: MutableSet<JetType>,
-            expansiveEdges: MutableSet<Pair<TypeParameterDescriptor, TypeParameterDescriptor>>,
-            edgeLists: MutableMap<TypeParameterDescriptor, MutableSet<TypeParameterDescriptor>>
-    ) {
-
-        fun addEdge(from: TypeParameterDescriptor, to: TypeParameterDescriptor, expansive: Boolean = false) {
-            val list = edgeLists.getOrPut(from) { linkedSetOf() }
-            list.add(to)
-            if (expansive) {
-                expansiveEdges.add(Pair(from, to))
-            }
-        }
-
-        val typeConstructor = type.constructor
+        val typeConstructor = classDescriptor.typeConstructor
         if (typeConstructor.parameters.isEmpty()) return
 
-        val typeParameters = typeConstructor.parameters
+        val builder = GraphBuilder(typeConstructor)
+        val graph = builder.build()
 
-        // For each type parameter T, let ST be the set of all constituent types of all immediate supertypes of the owner of T.
-        // If T appears as a constituent type of a simple type argument A in a generic type in ST, add an edge from T
-        // to U, where U is the type parameter corresponding to A, and where the edge is non-expansive if A has the form T or T?,
-        // the edge is expansive otherwise.
-        for (constituentType in TypeUtils.constituentTypes(typeConstructor.supertypes)) {
-            constituentType.arguments.forEachIndexed { i, typeProjection ->
-                if (typeProjection.projectionKind == Variance.INVARIANT) {
-                    val constituents = TypeUtils.constituentTypes(setOf(typeProjection.type))
+        val edgesInCycles = graph.expansiveEdges.filter { graph.isEdgeInCycle(it) }
+        if (edgesInCycles.isEmpty()) return
 
-                    for (typeParameter in typeParameters) {
-                        if (constituentType.constructor.parameters.size > i &&
-                                (typeParameter.defaultType in constituents || TypeUtils.makeNullable(typeParameter.defaultType) in constituents)) {
-                            addEdge(typeParameter, constituentType.constructor.parameters[i], !TypeUtils.isTypeParameter(typeProjection.type))
+        val problemNodes = edgesInCycles.flatMap { setOf(it.from, it.to) }
+
+        for (typeParameter in typeConstructor.parameters) {
+            if (typeParameter in problemNodes) {
+                val element = DescriptorToSourceUtils.descriptorToDeclaration(typeParameter) ?: declaration
+                diagnosticHolder.report(Errors.EXPANSIVE_INHERITANCE.on(element, "Type argument is not within its bounds (violation of Non-Expansive Inheritance Restriction"))
+                return
+            }
+        }
+
+        if (problemNodes.any { it.source != SourceElement.NO_SOURCE }) return
+
+        val superTypeFqNames = problemNodes.map { it.containingDeclaration }.map { it.fqNameUnsafe.asString() }.toSortedSet()
+        diagnosticHolder.report(Errors.EXPANSIVE_INHERITANCE.on(declaration, "Violation of Non-Expansive Inheritance Restriction for supertypes: " + superTypeFqNames.joinToString(", ")))
+    }
+
+    private class GraphBuilder(val typeConstructor: TypeConstructor) {
+        val processedTypeConstructors = hashSetOf<TypeConstructor>()
+        val expansiveEdges = hashSetOf<ExpansiveEdge<TypeParameterDescriptor>>()
+        val edgeLists = hashMapOf<TypeParameterDescriptor, MutableSet<TypeParameterDescriptor>>()
+
+        fun build(): Graph<TypeParameterDescriptor> {
+            doBuildGraph(typeConstructor)
+
+            return object : Graph<TypeParameterDescriptor> {
+                override fun getNeighbors(node: TypeParameterDescriptor) = edgeLists[node] ?: emptyList<TypeParameterDescriptor>()
+                override val expansiveEdges = this@GraphBuilder.expansiveEdges
+            }
+        }
+
+        private fun addEdge(from: TypeParameterDescriptor, to: TypeParameterDescriptor, expansive: Boolean = false) {
+            edgeLists.getOrPut(from) { linkedSetOf() }.add(to)
+            if (expansive) {
+                expansiveEdges.add(ExpansiveEdge(from, to))
+            }
+        }
+
+        private fun doBuildGraph(typeConstructor: TypeConstructor) {
+            if (typeConstructor.parameters.isEmpty()) return
+
+            val typeParameters = typeConstructor.parameters
+
+            // For each type parameter T, let ST be the set of all constituent types of all immediate supertypes of the owner of T.
+            // If T appears as a constituent type of a simple type argument A in a generic type in ST, add an edge from T
+            // to U, where U is the type parameter corresponding to A, and where the edge is non-expansive if A has the form T or T?,
+            // the edge is expansive otherwise.
+            for (constituentType in constituentTypes(typeConstructor.supertypes)) {
+                val constituentTypeConstructor = constituentType.constructor
+                if (constituentTypeConstructor.parameters.size != constituentType.arguments.size) continue
+
+                constituentType.arguments.forEachIndexed { i, typeProjection ->
+                    if (typeProjection.projectionKind == Variance.INVARIANT) {
+                        val constituents = constituentTypes(setOf(typeProjection.type))
+
+                        for (typeParameter in typeParameters) {
+                            if (typeParameter.defaultType in constituents || TypeUtils.makeNullable(typeParameter.defaultType) in constituents) {
+                                addEdge(typeParameter, constituentTypeConstructor.parameters[i], !TypeUtils.isTypeParameter(typeProjection.type))
+                            }
                         }
                     }
-                }
-                else {
-                    // Furthermore, if T appears as a constituent type of an element of the B-closure of the set of lower and
-                    // upper bounds of a skolem type variable Q in a skolemization of a projected generic type in ST, add an
-                    // expanding edge from T to V, where V is the type parameter corresponding to Q.
-                    if (constituentType.constructor.parameters.size > i) {
-                        val originalTypeParameter = constituentType.constructor.parameters[i]
-                        val bounds = hashSetOf<JetType>()
+                    else {
+                        // Furthermore, if T appears as a constituent type of an element of the B-closure of the set of lower and
+                        // upper bounds of a skolem type variable Q in a skolemization of a projected generic type in ST, add an
+                        // expanding edge from T to V, where V is the type parameter corresponding to Q.
+                        val originalTypeParameter = constituentTypeConstructor.parameters[i]
+                        val bounds = hashSetOf<KtType>()
 
                         val substitutor = constituentType.substitution.buildSubstitutor()
                         val adaptedUpperBounds = originalTypeParameter.upperBounds.map { substitutor.substitute(it, Variance.INVARIANT) }.filterNotNull()
@@ -110,24 +122,33 @@ public object NonExpansiveInheritanceRestrictionChecker {
                             bounds.add(typeProjection.type)
                         }
 
-                        val boundClosure = TypeUtils.boundClosure(bounds)
-                        val constituentTypes = TypeUtils.constituentTypes(boundClosure)
+                        val boundClosure = boundClosure(bounds)
+                        val constituentTypes = constituentTypes(boundClosure)
                         for (typeParameter in typeParameters) {
                             if (typeParameter.defaultType in constituentTypes || TypeUtils.makeNullable(typeParameter.defaultType) in constituentTypes) {
-                                addEdge(typeParameter, constituentType.constructor.parameters[i], true)
+                                addEdge(typeParameter, originalTypeParameter, true)
                             }
                         }
                     }
                 }
-            }
-            if (constituentType !in processedTypes) {
-                processedTypes.add(constituentType)
-                doBuildGraph(constituentType, processedTypes, expansiveEdges, edgeLists)
+                if (constituentTypeConstructor !in processedTypeConstructors) {
+                    processedTypeConstructors.add(constituentTypeConstructor)
+                    doBuildGraph(constituentTypeConstructor)
+                }
             }
         }
     }
 
-    private fun <T> collectReachable(from: T, edgeLists: Map<T, Set<T>>): List<T> {
+    private data class ExpansiveEdge<T>(val from: T, val to: T)
+
+    private interface  Graph<T> {
+        fun getNeighbors(node: T): Collection<T>
+        val expansiveEdges: Set<ExpansiveEdge<T>>
+    }
+
+    private fun <T> Graph<T>.isEdgeInCycle(edge: ExpansiveEdge<T>) = edge.from in collectReachable(edge.to)
+
+    private fun <T> Graph<T>.collectReachable(from: T): List<T> {
         val handler = object : DFS.NodeHandlerWithListResult<T, T>() {
             override fun afterChildren(current: T?) {
                 result.add(current)
@@ -135,9 +156,7 @@ public object NonExpansiveInheritanceRestrictionChecker {
         }
 
         val neighbors = object : DFS.Neighbors<T> {
-            override fun getNeighbors(current: T?): Iterable<T> {
-                return if (current != null) edgeLists[current] ?: emptyList() else emptyList()
-            }
+            override fun getNeighbors(current: T): Iterable<T> = this@collectReachable.getNeighbors(current)
         }
 
         DFS.dfs(listOf(from), neighbors, handler)

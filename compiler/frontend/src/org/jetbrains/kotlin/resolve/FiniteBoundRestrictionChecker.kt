@@ -17,68 +17,83 @@
 package org.jetbrains.kotlin.resolve
 
 import org.jetbrains.kotlin.descriptors.ClassDescriptor
+import org.jetbrains.kotlin.descriptors.SourceElement
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
 import org.jetbrains.kotlin.diagnostics.DiagnosticSink
 import org.jetbrains.kotlin.diagnostics.Errors
-import org.jetbrains.kotlin.psi.JetClass
-import org.jetbrains.kotlin.types.JetType
-import org.jetbrains.kotlin.types.TypeUtils
+import org.jetbrains.kotlin.psi.KtClass
+import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameUnsafe
+import org.jetbrains.kotlin.types.TypeConstructor
 import org.jetbrains.kotlin.types.Variance
+import org.jetbrains.kotlin.types.typeUtil.boundClosure
+import org.jetbrains.kotlin.types.typeUtil.constituentTypes
 import org.jetbrains.kotlin.utils.DFS
 
 public object FiniteBoundRestrictionChecker {
     @JvmStatic
     fun check(
-            declaration: JetClass,
-            type: JetType,
+            declaration: KtClass,
+            classDescriptor: ClassDescriptor,
             diagnosticHolder: DiagnosticSink
     ) {
-        if (type.constructor.parameters.isEmpty()) return
+        val typeConstructor = classDescriptor.typeConstructor
+        if (typeConstructor.parameters.isEmpty()) return
 
         // For every projection type argument A in every generic type B<…> in the set of constituent types
         // of every type in the B-closure the set of declared upper bounds of every type parameter T add an
         // edge from T to U, where U is the type parameter of the declaration of B<…> corresponding to the type argument A.
         // It is a compile-time error if the graph G has a cycle.
-        val (nodes, edgeLists) = buildGraph(type)
+        val graph = GraphBuilder(typeConstructor).build()
 
-        for (node in nodes) {
-            if (isInCycle(node, edgeLists)) {
-                val element = DescriptorToSourceUtils.descriptorToDeclaration(node) ?: declaration
-                diagnosticHolder.report(Errors.FINITE_BOUNDS_VIOLATION.on(element))
-                break;
+        val problemNodes = graph.nodes.filter { graph.isInCycle(it) }
+        if (problemNodes.isEmpty()) return
+
+        for (typeParameter in typeConstructor.parameters) {
+            if (typeParameter in problemNodes) {
+                val element = DescriptorToSourceUtils.descriptorToDeclaration(typeParameter) ?: declaration
+                diagnosticHolder.report(Errors.FINITE_BOUNDS_VIOLATION.on(element, "Type argument is not within its bounds (violation of Finite Bound Restriction)"))
+                return
             }
         }
+
+        if (problemNodes.any { it.source != SourceElement.NO_SOURCE }) return
+
+        val superTypeFqNames = problemNodes.map { it.containingDeclaration }.map { it.fqNameUnsafe.asString() }.toSortedSet()
+        diagnosticHolder.report(Errors.FINITE_BOUNDS_VIOLATION.on(declaration, "Violation of Finite Bound Restriction for supertypes: " + superTypeFqNames.joinToString(", ")))
     }
 
-    private fun buildGraph(type: JetType): Pair<Set<TypeParameterDescriptor>, Map<TypeParameterDescriptor, List<TypeParameterDescriptor>>> {
-        val nodes = linkedSetOf<TypeParameterDescriptor>()
-        val edgeLists = hashMapOf<TypeParameterDescriptor, MutableList<TypeParameterDescriptor>>()
-        val processedTypes = hashSetOf<JetType>()
+    private class GraphBuilder(val typeConstructor: TypeConstructor) {
+        val nodes: MutableSet<TypeParameterDescriptor> = hashSetOf()
+        private val edgeLists = hashMapOf<TypeParameterDescriptor, MutableList<TypeParameterDescriptor>>()
+        private val processedTypeConstructors = hashSetOf<TypeConstructor>()
 
-        doBuildGraph(type, processedTypes, nodes, edgeLists)
-        return Pair(nodes, edgeLists)
-    }
+        fun build(): Graph<TypeParameterDescriptor> {
+            buildGraph(typeConstructor)
 
-    private fun doBuildGraph(
-            type: JetType,
-            processedTypes: MutableSet<JetType>,
-            nodes: MutableSet<TypeParameterDescriptor>,
-            edgeLists: MutableMap<TypeParameterDescriptor, MutableList<TypeParameterDescriptor>>
-    ) {
-        type.constructor.parameters.forEach { typeParameter ->
-            nodes.add(typeParameter)
-            val boundClosure = TypeUtils.boundClosure(typeParameter.upperBounds)
-            val constituentTypes = TypeUtils.constituentTypes(boundClosure)
-            constituentTypes.forEach { constituentType ->
-                constituentType.arguments.forEachIndexed { i, typeProjection ->
-                    if (typeProjection.projectionKind != Variance.INVARIANT) {
-                        if (constituentType.constructor.parameters.size > i) {
-                            val otherTypeParameter = constituentType.constructor.parameters[i]
-                            val list = edgeLists.getOrPut(typeParameter) { arrayListOf() }
-                            list.add(otherTypeParameter)
-                            if (constituentType !in processedTypes) {
-                                processedTypes.add(constituentType)
-                                doBuildGraph(constituentType, processedTypes, nodes, edgeLists)
+            return object : Graph<TypeParameterDescriptor> {
+                override val nodes = this@GraphBuilder.nodes
+                override fun getNeighbors(node: TypeParameterDescriptor) = edgeLists[node] ?: emptyList<TypeParameterDescriptor>()
+            }
+        }
+
+        private fun addEdge(from: TypeParameterDescriptor, to: TypeParameterDescriptor) = edgeLists.getOrPut(from) { arrayListOf() }.add(to)
+
+        private fun buildGraph(typeConstructor: TypeConstructor) {
+            typeConstructor.parameters.forEach { typeParameter ->
+                val boundClosure = boundClosure(typeParameter.upperBounds)
+                val constituentTypes = constituentTypes(boundClosure)
+                for (constituentType in constituentTypes) {
+                    val constituentTypeConstructor = constituentType.constructor
+                    if (constituentTypeConstructor.parameters.size != constituentType.arguments.size) continue
+
+                    constituentType.arguments.forEachIndexed { i, typeProjection ->
+                        if (typeProjection.projectionKind != Variance.INVARIANT) {
+                            nodes.add(typeParameter)
+                            nodes.add(constituentTypeConstructor.parameters[i])
+                            addEdge(typeParameter, constituentTypeConstructor.parameters[i])
+                            if (constituentTypeConstructor !in processedTypeConstructors) {
+                                processedTypeConstructors.add(constituentTypeConstructor)
+                                buildGraph(constituentTypeConstructor)
                             }
                         }
                     }
@@ -87,7 +102,12 @@ public object FiniteBoundRestrictionChecker {
         }
     }
 
-    private fun <T> isInCycle(from: T, edgeLists: Map<T, List<T>>): Boolean {
+    private interface  Graph<T> {
+        val nodes: Set<T>
+        fun getNeighbors(node: T): List<T>
+    }
+
+    private fun <T> Graph<T>.isInCycle(from: T): Boolean {
         var result = false
 
         val visited = object : DFS.VisitedWithSet<T>() {
@@ -106,7 +126,7 @@ public object FiniteBoundRestrictionChecker {
         }
 
         val neighbors = object : DFS.Neighbors<T> {
-            override fun getNeighbors(current: T?) = if (current != null) edgeLists[current] ?: emptyList() else emptyList()
+            override fun getNeighbors(current: T) = this@isInCycle.getNeighbors(current)
         }
 
         DFS.dfs(listOf(from), neighbors, visited, handler)
