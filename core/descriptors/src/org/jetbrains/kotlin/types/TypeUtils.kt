@@ -147,14 +147,12 @@ fun Collection<KtType>.closure(f: (KtType) -> Collection<KtType>): Collection<Kt
     val result = HashSet(this)
     var elementsToCheck = result
     var oldSize = 0
-    var size = result.size
-    while (size > oldSize) {
-        oldSize = size
+    while (result.size > oldSize) {
+        oldSize = result.size
         val toAdd = hashSetOf<KtType>()
         elementsToCheck.forEach { toAdd.addAll(f(it)) }
         result.addAll(toAdd)
         elementsToCheck = toAdd
-        size = result.size
     }
 
     return result

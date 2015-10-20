@@ -64,9 +64,9 @@ public object NonExpansiveInheritanceRestrictionChecker {
     }
 
     private class GraphBuilder(val typeConstructor: TypeConstructor) {
-        val processedTypeConstructors = hashSetOf<TypeConstructor>()
-        val expansiveEdges = hashSetOf<ExpansiveEdge<TypeParameterDescriptor>>()
-        val edgeLists = hashMapOf<TypeParameterDescriptor, MutableSet<TypeParameterDescriptor>>()
+        private val processedTypeConstructors = hashSetOf<TypeConstructor>()
+        private val expansiveEdges = hashSetOf<ExpansiveEdge<TypeParameterDescriptor>>()
+        private val edgeLists = hashMapOf<TypeParameterDescriptor, MutableSet<TypeParameterDescriptor>>()
 
         fun build(): Graph<TypeParameterDescriptor> {
             doBuildGraph(typeConstructor)
@@ -95,6 +95,10 @@ public object NonExpansiveInheritanceRestrictionChecker {
             // the edge is expansive otherwise.
             for (constituentType in constituentTypes(typeConstructor.supertypes)) {
                 val constituentTypeConstructor = constituentType.constructor
+                if (constituentTypeConstructor !in processedTypeConstructors) {
+                    processedTypeConstructors.add(constituentTypeConstructor)
+                    doBuildGraph(constituentTypeConstructor)
+                }
                 if (constituentTypeConstructor.parameters.size != constituentType.arguments.size) continue
 
                 constituentType.arguments.forEachIndexed { i, typeProjection ->
@@ -130,10 +134,6 @@ public object NonExpansiveInheritanceRestrictionChecker {
                             }
                         }
                     }
-                }
-                if (constituentTypeConstructor !in processedTypeConstructors) {
-                    processedTypeConstructors.add(constituentTypeConstructor)
-                    doBuildGraph(constituentTypeConstructor)
                 }
             }
         }

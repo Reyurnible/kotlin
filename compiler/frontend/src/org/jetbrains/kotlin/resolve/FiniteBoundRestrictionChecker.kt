@@ -63,7 +63,7 @@ public object FiniteBoundRestrictionChecker {
     }
 
     private class GraphBuilder(val typeConstructor: TypeConstructor) {
-        val nodes: MutableSet<TypeParameterDescriptor> = hashSetOf()
+        private val nodes: MutableSet<TypeParameterDescriptor> = hashSetOf()
         private val edgeLists = hashMapOf<TypeParameterDescriptor, MutableList<TypeParameterDescriptor>>()
         private val processedTypeConstructors = hashSetOf<TypeConstructor>()
 
@@ -84,6 +84,10 @@ public object FiniteBoundRestrictionChecker {
                 val constituentTypes = constituentTypes(boundClosure)
                 for (constituentType in constituentTypes) {
                     val constituentTypeConstructor = constituentType.constructor
+                    if (constituentTypeConstructor !in processedTypeConstructors) {
+                        processedTypeConstructors.add(constituentTypeConstructor)
+                        buildGraph(constituentTypeConstructor)
+                    }
                     if (constituentTypeConstructor.parameters.size != constituentType.arguments.size) continue
 
                     constituentType.arguments.forEachIndexed { i, typeProjection ->
@@ -91,10 +95,6 @@ public object FiniteBoundRestrictionChecker {
                             nodes.add(typeParameter)
                             nodes.add(constituentTypeConstructor.parameters[i])
                             addEdge(typeParameter, constituentTypeConstructor.parameters[i])
-                            if (constituentTypeConstructor !in processedTypeConstructors) {
-                                processedTypeConstructors.add(constituentTypeConstructor)
-                                buildGraph(constituentTypeConstructor)
-                            }
                         }
                     }
                 }
