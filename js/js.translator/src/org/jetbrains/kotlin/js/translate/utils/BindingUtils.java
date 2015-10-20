@@ -151,10 +151,10 @@ public final class BindingUtils {
     @Nullable
     public static Object getCompileTimeValue(@NotNull BindingContext context, @NotNull KtExpression expression) {
         CompileTimeConstant<?> compileTimeValue = ConstantExpressionEvaluator.getConstant(expression, context);
-        if (compileTimeValue != null) {
-            return getCompileTimeValue(context, expression, compileTimeValue);
-        }
-        return null;
+
+        if (compileTimeValue == null || !compileTimeValue.isPure()) return null;
+
+        return getCompileTimeValue(context, expression, compileTimeValue);
     }
 
     @Nullable

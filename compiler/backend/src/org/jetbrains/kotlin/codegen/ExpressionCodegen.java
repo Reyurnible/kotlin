@@ -3039,8 +3039,16 @@ public class ExpressionCodegen extends KtVisitor<StackValue, StackValue> impleme
     }
 
     private boolean isIntZero(KtExpression expr, Type exprType) {
-        ConstantValue<?> exprValue = getCompileTimeConstant(expr, bindingContext);
-        return isIntPrimitive(exprType) && exprValue != null && Integer.valueOf(0).equals(exprValue.getValue());
+        CompileTimeConstant<?> compileTimeConstant = ConstantExpressionEvaluator.getConstant(expr, bindingContext);
+        if (compileTimeConstant == null) return false;
+
+        KotlinType expectedType = bindingContext.getType(expr);
+        ConstantValue<?> value = compileTimeConstant.toConstantValue(expectedType);
+
+        return  compileTimeConstant.isPure()
+                && isIntPrimitive(exprType)
+                && value != null
+                && Integer.valueOf(0).equals(value.getValue());
     }
 
     private StackValue genCmpWithZero(KtExpression exp, IElementType opToken) {

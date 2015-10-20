@@ -524,7 +524,7 @@ private class ConstantExpressionEvaluatorVisitor(
                         variableInitializer.value,
                         expectedType,
                         CompileTimeConstant.Parameters(
-                                canBeUsedInAnnotation = isPropertyCompileTimeConstant(callableDescriptor),
+                                canBeUsedInAnnotation = callableDescriptor.isConst,
                                 isPure = false,
                                 usesVariableAsConstant = true,
                                 usesNonConstValAsConstant = !callableDescriptor.isConst
@@ -533,18 +533,6 @@ private class ConstantExpressionEvaluatorVisitor(
             }
         }
         return null
-    }
-
-    // TODO: Should be replaced with descriptor.isConst
-    private fun isPropertyCompileTimeConstant(descriptor: VariableDescriptor): Boolean {
-        if (descriptor.isVar()) {
-            return false
-        }
-        if (DescriptorUtils.isObject(descriptor.getContainingDeclaration()) ||
-            DescriptorUtils.isStaticDeclaration(descriptor)) {
-            return descriptor.type.canBeUsedForConstVal()
-        }
-        return false
     }
 
     override fun visitQualifiedExpression(expression: KtQualifiedExpression, expectedType: KotlinType?): CompileTimeConstant<*>? {

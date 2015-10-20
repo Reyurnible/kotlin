@@ -16,10 +16,7 @@
 
 package org.jetbrains.kotlin.js.translate.expression;
 
-import com.google.dart.compiler.backend.js.ast.JsExpression;
-import com.google.dart.compiler.backend.js.ast.JsInvocation;
-import com.google.dart.compiler.backend.js.ast.JsNameRef;
-import com.google.dart.compiler.backend.js.ast.JsNumberLiteral;
+import com.google.dart.compiler.backend.js.ast.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.js.descriptorUtils.DescriptorUtilsKt;
@@ -34,7 +31,6 @@ import org.jetbrains.kotlin.types.KotlinType;
 
 import java.util.Collections;
 
-import static org.jetbrains.kotlin.js.translate.utils.ErrorReportingUtils.message;
 import static org.jetbrains.kotlin.js.translate.utils.JsAstUtils.sum;
 
 public final class StringTemplateTranslator extends AbstractTranslator {
@@ -51,11 +47,12 @@ public final class StringTemplateTranslator extends AbstractTranslator {
         super(context);
 
         expressionEntries = expression.getEntries();
-        assert expressionEntries.length != 0 : message(expression, "String template must have one or more entries.");
     }
 
     @NotNull
     private JsExpression translate() {
+        if (expressionEntries.length == 0) return context().program().getStringLiteral("");
+
         EntryVisitor entryVisitor = new EntryVisitor();
         for (KtStringTemplateEntry entry : expressionEntries) {
             entry.accept(entryVisitor);
