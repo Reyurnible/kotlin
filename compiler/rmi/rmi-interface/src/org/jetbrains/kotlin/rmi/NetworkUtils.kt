@@ -21,8 +21,12 @@ import java.io.Serializable
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.rmi.RemoteException
+import java.rmi.registry.LocateRegistry
+import java.rmi.registry.Registry
 import java.rmi.server.RMIClientSocketFactory
 import java.rmi.server.RMIServerSocketFactory
+import java.util.*
 
 
 public val SOCKET_ANY_FREE_PORT  = 0
@@ -32,8 +36,8 @@ public object LoopbackNetworkInterface {
     val IPV4_LOOPBACK_INET_ADDRESS = "127.0.0.1"
     val IPV6_LOOPBACK_INET_ADDRESS = "::1"
 
-    val SERVER_SOCKET_BACKLOG_SIZE = 5 // size of the requests queue for daemon services, so far seems that we don't need any big numbers here
-                                       // but if we'll start getting "connection refused" errors, that could be the first place to try to fix it
+    val SERVER_SOCKET_BACKLOG_SIZE = 10 // size of the requests queue for daemon services, so far seems that we don't need any big numbers here
+                                        // but if we'll start getting "connection refused" errors, that could be the first place to try to fix it
 
     public val serverLoopbackSocketFactory by lazy { ServerLoopbackSocketFactory() }
     public val clientLoopbackSocketFactory by lazy { ClientLoopbackSocketFactory() }
@@ -70,4 +74,22 @@ public object LoopbackNetworkInterface {
 }
 
 
+private val portSelectionRng = Random()
+
+public fun findPortAndCreateRegistry(attempts: Int, portRangeStart: Int, portRangeEnd: Int) : Pair<Registry, Int> {
+    var i = 0
+    var lastException: RemoteException? = null
+
+    while (i++ < attempts) {
+        val port = portSelectionRng.nextInt(portRangeEnd - portRangeStart) + portRangeStart
+        try {
+            return Pair(LocateRegistry.createRegistry(port, LoopbackNetworkInterface.clientLoopbackSocketFactory, LoopbackNetworkInterface.serverLoopbackSocketFactory), port)
+        }
+        catch (e: RemoteException) {
+            // assuming that the port is already taken
+            lastException = e
+        }
+    }
+    throw IllegalStateException("Cannot find free port in $attempts attempts", lastException)
+}
 
