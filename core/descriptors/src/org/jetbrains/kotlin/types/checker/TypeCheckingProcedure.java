@@ -20,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns;
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor;
+import org.jetbrains.kotlin.resolve.DescriptorUtils;
 import org.jetbrains.kotlin.resolve.descriptorUtil.DescriptorUtilsKt;
 import org.jetbrains.kotlin.types.*;
 
@@ -45,7 +46,7 @@ public class TypeCheckingProcedure {
 
     public static KotlinType getOutType(TypeParameterDescriptor parameter, TypeProjection argument) {
         boolean isOutProjected = argument.getProjectionKind() == IN_VARIANCE || parameter.getVariance() == IN_VARIANCE;
-        return isOutProjected ? parameter.getUpperBoundsAsType() : argument.getType();
+        return isOutProjected ? DescriptorUtils.getRepresentativeUpperBound(parameter) : argument.getType();
     }
 
     public static KotlinType getInType(@NotNull TypeParameterDescriptor parameter, @NotNull TypeProjection argument) {
