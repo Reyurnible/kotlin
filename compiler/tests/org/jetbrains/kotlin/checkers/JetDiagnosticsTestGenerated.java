@@ -5047,18 +5047,6 @@ public class JetDiagnosticsTestGenerated extends AbstractJetDiagnosticsTest {
                     String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/duplicateJvmSignature/erasure/typeParameterWithBound.kt");
                     doTest(fileName);
                 }
-
-                @TestMetadata("typeParameterWithTwoBounds.kt")
-                public void testTypeParameterWithTwoBounds() throws Exception {
-                    String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/duplicateJvmSignature/erasure/typeParameterWithTwoBounds.kt");
-                    doTest(fileName);
-                }
-
-                @TestMetadata("typeParameterWithTwoBoundsInWhere.kt")
-                public void testTypeParameterWithTwoBoundsInWhere() throws Exception {
-                    String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/duplicateJvmSignature/erasure/typeParameterWithTwoBoundsInWhere.kt");
-                    doTest(fileName);
-                }
             }
 
             @TestMetadata("compiler/testData/diagnostics/tests/duplicateJvmSignature/functionAndProperty")
@@ -10679,6 +10667,12 @@ public class JetDiagnosticsTestGenerated extends AbstractJetDiagnosticsTest {
                 String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/overload/SyntheticAndNotSynthetic.kt");
                 doTest(fileName);
             }
+
+            @TestMetadata("TypeParameterMultipleBounds.kt")
+            public void testTypeParameterMultipleBounds() throws Exception {
+                String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/overload/TypeParameterMultipleBounds.kt");
+                doTest(fileName);
+            }
         }
 
         @TestMetadata("compiler/testData/diagnostics/tests/override")
@@ -11991,6 +11985,12 @@ public class JetDiagnosticsTestGenerated extends AbstractJetDiagnosticsTest {
             @TestMetadata("SingletonAndFunctionSameName.kt")
             public void testSingletonAndFunctionSameName() throws Exception {
                 String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/redeclarations/SingletonAndFunctionSameName.kt");
+                doTest(fileName);
+            }
+
+            @TestMetadata("typeParameterWithTwoBounds.kt")
+            public void testTypeParameterWithTwoBounds() throws Exception {
+                String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/redeclarations/typeParameterWithTwoBounds.kt");
                 doTest(fileName);
             }
         }

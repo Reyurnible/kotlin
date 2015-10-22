@@ -21,8 +21,9 @@ import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.incremental.components.NoLookupLocation
 import org.jetbrains.kotlin.name.FqNameUnsafe
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.resolve.OverridingUtil.OverrideCompatibilityInfo.Result.*
+import org.jetbrains.kotlin.resolve.OverridingUtil.OverrideCompatibilityInfo.Result.INCOMPATIBLE
 import org.jetbrains.kotlin.resolve.scopes.KtScope
+import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.checker.KotlinTypeChecker
 import org.jetbrains.kotlin.types.oneMoreSpecificThanAnother
 
@@ -47,11 +48,10 @@ object OverloadUtil {
         val aValueParameters = OverridingUtil.compiledValueParameters(a)
         val bValueParameters = OverridingUtil.compiledValueParameters(b)
 
-        for (i in aValueParameters.indices) {
-            val superValueParameterType = OverridingUtil.getUpperBound(aValueParameters[i])
-            val subValueParameterType = OverridingUtil.getUpperBound(bValueParameters[i])
-            if (!KotlinTypeChecker.DEFAULT.equalTypes(superValueParameterType, subValueParameterType) ||
-                    oneMoreSpecificThanAnother(subValueParameterType, superValueParameterType)) {
+        for ((aParam, bParam) in aValueParameters.zip(bValueParameters)) {
+            val aType = aParam.upperBound
+            val bType = bParam.upperBound
+            if (!KotlinTypeChecker.DEFAULT.equalTypes(aType, bType) || oneMoreSpecificThanAnother(bType, aType)) {
                 return true
             }
         }
@@ -66,6 +66,16 @@ object OverloadUtil {
                 is ConstructorDescriptor -> 1
                 else -> throw IllegalStateException()
             }
+
+    private val KotlinType.upperBound: KotlinType
+        get() {
+            val classifier = constructor.declarationDescriptor
+            return when (classifier) {
+                is ClassDescriptor -> this
+                is TypeParameterDescriptor -> DescriptorUtils.getRepresentativeUpperBound(classifier)
+                else -> throw IllegalStateException("Unknown type constructor: $this")
+            }
+        }
 
     public @JvmStatic fun groupModulePackageMembersByFqName(
             c: BodiesResolveContext,
