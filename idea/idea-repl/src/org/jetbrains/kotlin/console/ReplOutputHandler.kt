@@ -34,8 +34,8 @@ public val SOURCE_CHARS: Array<String>     = arrayOf("\n", "#")
 
 data class SeverityDetails(val severity: Severity, val description: String, val range: TextRange)
 
-public class KotlinReplOutputHandler(
-        private val historyHighlighter: KotlinHistoryHighlighter,
+class ReplOutputHandler(
+        private val runner: KotlinConsoleRunner,
         private val outputHighlighter: KotlinReplOutputHighlighter,
         process: Process,
         commandLine: String
@@ -63,8 +63,8 @@ public class KotlinReplOutputHandler(
             "HELP_PROMPT"     -> outputHighlighter.printHelp(content)
             "USER_OUTPUT"     -> outputHighlighter.printUserOutput(content)
             "REPL_RESULT"     -> outputHighlighter.printResultWithGutterIcon(content)
-            "READLINE_START"  -> historyHighlighter.isReadLineMode = true
-            "READLINE_END"    -> historyHighlighter.isReadLineMode = false
+            "READLINE_START"  -> runner.isReadLineMode = true
+            "READLINE_END"    -> runner.isReadLineMode = false
             "REPL_INCOMPLETE",
             "COMPILE_ERROR"   -> outputHighlighter.highlightCompilerErrors(createCompilerMessages(content))
             "RUNTIME_ERROR"   -> outputHighlighter.printRuntimeError("${content.trim()}\n")

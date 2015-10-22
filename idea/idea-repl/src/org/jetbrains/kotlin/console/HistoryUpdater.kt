@@ -25,18 +25,8 @@ import com.intellij.openapi.util.TextRange
 import org.jetbrains.kotlin.console.gutter.KotlinConsoleIndicatorRenderer
 import org.jetbrains.kotlin.console.gutter.ReplIcons
 
-public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner) {
+public class HistoryUpdater(private val runner: KotlinConsoleRunner) {
     private val consoleView: LanguageConsoleImpl by lazy { runner.consoleView as LanguageConsoleImpl }
-
-    var isReadLineMode: Boolean = false
-        set(value) {
-            if (value)
-                runner.changeConsoleEditorIndicator(ReplIcons.EDITOR_READLINE_INDICATOR)
-            else
-                runner.changeConsoleEditorIndicator(ReplIcons.EDITOR_INDICATOR)
-
-            field = value
-        }
 
     fun printNewCommandInHistory(trimmedCommandText: String): TextRange {
         val historyEditor = consoleView.historyViewer
@@ -51,7 +41,7 @@ public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner) {
         historyEditor.markupModel.addRangeHighlighter(
                 startOffset, endOffset, HighlighterLayer.LAST, null, HighlighterTargetArea.EXACT_RANGE
         ).apply {
-            val historyMarker = if (isReadLineMode) ReplIcons.READLINE_MARKER else ReplIcons.COMMAND_MARKER
+            val historyMarker = if (runner.isReadLineMode) ReplIcons.READLINE_MARKER else ReplIcons.COMMAND_MARKER
             gutterIconRenderer = KotlinConsoleIndicatorRenderer(historyMarker)
         }
         return TextRange(startOffset, endOffset)
@@ -67,7 +57,7 @@ public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner) {
     }
 
     private fun addLineBreakIfNeeded(historyEditor: EditorEx) {
-        if (isReadLineMode) return
+        if (runner.isReadLineMode) return
 
         val historyDocument = historyEditor.document
         val historyText = historyDocument.text

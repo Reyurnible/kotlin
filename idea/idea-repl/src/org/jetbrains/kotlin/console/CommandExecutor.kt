@@ -23,18 +23,20 @@ import org.jetbrains.kotlin.console.actions.logError
 
 private val XML_PREAMBLE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 
-public class KotlinConsoleExecutor(
+public class CommandExecutor(
         private val runner: KotlinConsoleRunner,
-        private val historyHighlighter: KotlinHistoryHighlighter,
         private val commandHistory: CommandHistory
 ) {
+    private val historyUpdater = HistoryUpdater(runner)
+
     fun executeCommand() = WriteCommandAction.runWriteCommandAction(runner.project) {
         val commandText = getTrimmedCommandText()
 
         if (commandText.isEmpty()) {
             return@runWriteCommandAction
         }
-        val historyDocumentRange = historyHighlighter.printNewCommandInHistory(commandText)
+
+        val historyDocumentRange = historyUpdater.printNewCommandInHistory(commandText)
         commandHistory.addEntry(CommandHistory.Entry(commandText, historyDocumentRange))
         sendCommandToProcess(commandText)
     }

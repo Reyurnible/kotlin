@@ -69,12 +69,11 @@ public class KotlinConsoleRunner(
         path: String?
 ) : AbstractConsoleRunnerWithHistory<LanguageConsoleView>(myProject, title, path) {
     private val commandHistory = CommandHistory()
-    private val historyHighlighter = KotlinHistoryHighlighter(this)
 
     private var consoleEditorHighlighter by Delegates.notNull<RangeHighlighter>()
     private var disposableDescriptor by Delegates.notNull<RunContentDescriptor>()
 
-    val executor = KotlinConsoleExecutor(this, historyHighlighter, commandHistory)
+    val executor = CommandExecutor(this, commandHistory)
     var compilerHelper: KotlinConsoleCompilerHelper by Delegates.notNull()
 
     override fun createProcess() = cmdLine.createProcess()
@@ -102,8 +101,8 @@ public class KotlinConsoleRunner(
     }
 
     override fun createProcessHandler(process: Process): OSProcessHandler {
-        val processHandler = KotlinReplOutputHandler(
-                historyHighlighter,
+        val processHandler = ReplOutputHandler(
+                this,
                 KotlinReplOutputHighlighter(this, commandHistory, testMode, previousCompilationFailed),
                 process,
                 cmdLine.commandLineString
@@ -200,12 +199,23 @@ public class KotlinConsoleRunner(
         return indicatorHighlighter.apply { gutterIconRenderer = indicator }
     }
 
-    fun changeConsoleEditorIndicator(newIconWithTooltip: IconWithTooltip) = WriteCommandAction.runWriteCommandAction(project) {
-        consoleEditorHighlighter.gutterIconRenderer = KotlinConsoleIndicatorRenderer(newIconWithTooltip)
-    }
-
     @TestOnly fun dispose() {
         processHandler.destroyProcess()
         Disposer.dispose(disposableDescriptor)
+    }
+
+    var isReadLineMode: Boolean = false
+        set(value) {
+            if (value)
+                changeConsoleEditorIndicator(ReplIcons.EDITOR_READLINE_INDICATOR)
+            else
+                changeConsoleEditorIndicator(ReplIcons.EDITOR_INDICATOR)
+
+            field = value
+        }
+
+
+    fun changeConsoleEditorIndicator(newIconWithTooltip: IconWithTooltip) = WriteCommandAction.runWriteCommandAction(project) {
+        consoleEditorHighlighter.gutterIconRenderer = KotlinConsoleIndicatorRenderer(newIconWithTooltip)
     }
 }
