@@ -20,8 +20,6 @@ import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.util.text.StringUtil
-import org.jetbrains.kotlin.console.highlight.KotlinHistoryHighlighter
-import org.jetbrains.kotlin.console.highlight.KotlinReplOutputHighlighter
 import org.jetbrains.kotlin.diagnostics.Severity
 import org.w3c.dom.Element
 import org.xml.sax.InputSource

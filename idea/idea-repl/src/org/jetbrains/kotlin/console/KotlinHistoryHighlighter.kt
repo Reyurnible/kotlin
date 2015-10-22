@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.console.highlight
+package org.jetbrains.kotlin.console
 
 import com.intellij.execution.console.LanguageConsoleImpl
 import com.intellij.openapi.editor.ex.EditorEx
@@ -22,11 +22,10 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.util.TextRange
-import org.jetbrains.kotlin.console.KotlinConsoleRunner
 import org.jetbrains.kotlin.console.gutter.KotlinConsoleIndicatorRenderer
 import org.jetbrains.kotlin.console.gutter.ReplIcons
 
-public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner ) {
+public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner) {
     private val consoleView: LanguageConsoleImpl by lazy { runner.consoleView as LanguageConsoleImpl }
 
     var isReadLineMode: Boolean = false
@@ -39,11 +38,11 @@ public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner ) 
             field = value
         }
 
-    fun printNewCommandInHistory(trimmedCommandText: String) {
+    fun printNewCommandInHistory(trimmedCommandText: String): TextRange {
         val historyEditor = consoleView.historyViewer
         addLineBreakIfNeeded(historyEditor)
         val startOffset = historyEditor.document.textLength
-        val endOffset = startOffset + trimmedCommandText.length()
+        val endOffset = startOffset + trimmedCommandText.length
 
         addCommandTextToHistoryEditor(trimmedCommandText)
         EditorUtil.scrollToTheEnd(historyEditor)
@@ -55,6 +54,7 @@ public class KotlinHistoryHighlighter(private val runner: KotlinConsoleRunner ) 
             val historyMarker = if (isReadLineMode) ReplIcons.READLINE_MARKER else ReplIcons.COMMAND_MARKER
             gutterIconRenderer = KotlinConsoleIndicatorRenderer(historyMarker)
         }
+        return TextRange(startOffset, endOffset)
     }
 
     private fun addCommandTextToHistoryEditor(trimmedCommandText: String) {
