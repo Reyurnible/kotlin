@@ -22,7 +22,7 @@ import com.intellij.openapi.editor.ex.util.EditorUtil
 import com.intellij.openapi.editor.markup.HighlighterLayer
 import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.util.TextRange
-import org.jetbrains.kotlin.console.gutter.KotlinConsoleIndicatorRenderer
+import org.jetbrains.kotlin.console.gutter.ConsoleIndicatorRenderer
 import org.jetbrains.kotlin.console.gutter.ReplIcons
 
 public class HistoryUpdater(private val runner: KotlinConsoleRunner) {
@@ -42,7 +42,7 @@ public class HistoryUpdater(private val runner: KotlinConsoleRunner) {
                 startOffset, endOffset, HighlighterLayer.LAST, null, HighlighterTargetArea.EXACT_RANGE
         ).apply {
             val historyMarker = if (runner.isReadLineMode) ReplIcons.READLINE_MARKER else ReplIcons.COMMAND_MARKER
-            gutterIconRenderer = KotlinConsoleIndicatorRenderer(historyMarker)
+            gutterIconRenderer = ConsoleIndicatorRenderer(historyMarker)
         }
         return TextRange(startOffset, endOffset)
     }
@@ -61,7 +61,7 @@ public class HistoryUpdater(private val runner: KotlinConsoleRunner) {
 
         val historyDocument = historyEditor.document
         val historyText = historyDocument.text
-        val textLength = historyText.length()
+        val textLength = historyText.length
 
         if (!historyText.endsWith('\n')) {
             historyDocument.insertString(textLength, "\n")
@@ -78,7 +78,7 @@ public class HistoryUpdater(private val runner: KotlinConsoleRunner) {
 
     private fun addFoldingRegion(historyEditor: EditorEx, startOffset: Int, endOffset: Int, command: String) {
         val cmdLines = command.lines()
-        val linesCount = cmdLines.size()
+        val linesCount = cmdLines.size
         if (linesCount < 2) return
 
         val foldingModel =  historyEditor.foldingModel

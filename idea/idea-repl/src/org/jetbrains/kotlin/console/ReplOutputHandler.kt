@@ -36,13 +36,13 @@ data class SeverityDetails(val severity: Severity, val description: String, val 
 
 class ReplOutputHandler(
         private val runner: KotlinConsoleRunner,
-        private val outputHighlighter: KotlinReplOutputHighlighter,
         process: Process,
         commandLine: String
 ) : OSProcessHandler(process, commandLine) {
 
     private var isBuildInfoChecked = false
     private val dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+    private val outputHighlighter = ReplOutputHighlighter(runner)
 
     override fun isSilentlyDestroyOnClose() = true
 
