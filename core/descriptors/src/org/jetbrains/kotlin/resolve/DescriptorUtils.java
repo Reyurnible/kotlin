@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.resolve;
 
+import kotlin.CollectionsKt;
 import kotlin.jvm.functions.Function1;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -642,5 +643,21 @@ public class DescriptorUtils {
                 getSubPackagesFqNames((PackageViewDescriptor) descriptor, result);
             }
         }
+    }
+
+    @NotNull
+    public static KotlinType getRepresentativeUpperBound(@NotNull TypeParameterDescriptor descriptor) {
+        List<KotlinType> upperBounds = descriptor.getUpperBounds();
+        assert !upperBounds.isEmpty() : "Upper bounds should not be empty: " + descriptor;
+        for (KotlinType upperBound : upperBounds) {
+            ClassifierDescriptor classifier = upperBound.getConstructor().getDeclarationDescriptor();
+            if (classifier instanceof ClassDescriptor) {
+                ClassKind kind = ((ClassDescriptor) classifier).getKind();
+                if (kind != ClassKind.INTERFACE && kind != ClassKind.ANNOTATION_CLASS) {
+                    return upperBound;
+                }
+            }
+        }
+        return CollectionsKt.first(upperBounds);
     }
 }

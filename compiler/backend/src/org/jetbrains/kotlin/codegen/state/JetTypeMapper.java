@@ -510,7 +510,7 @@ public class JetTypeMapper {
 
         if (descriptor instanceof TypeParameterDescriptor) {
             TypeParameterDescriptor typeParameterDescriptor = (TypeParameterDescriptor) descriptor;
-            Type type = mapType(typeParameterDescriptor.getUpperBounds().iterator().next(), kind);
+            Type type = mapType(DescriptorUtils.getRepresentativeUpperBound(typeParameterDescriptor), kind);
             if (signatureVisitor != null) {
                 signatureVisitor.writeTypeVariable(typeParameterDescriptor.getName(), type);
             }
