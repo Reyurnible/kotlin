@@ -105,10 +105,8 @@ public class OverridingUtil {
 
         if (superTypeParameters.size() != subTypeParameters.size()) {
             for (int i = 0; i < superValueParameters.size(); ++i) {
-                KotlinType superValueParameterType = getUpperBound(superValueParameters.get(i));
-                KotlinType subValueParameterType = getUpperBound(subValueParameters.get(i));
                 // TODO: compare erasure
-                if (!KotlinTypeChecker.DEFAULT.equalTypes(superValueParameterType, subValueParameterType)) {
+                if (!KotlinTypeChecker.DEFAULT.equalTypes(superValueParameters.get(i), subValueParameters.get(i))) {
                     return OverrideCompatibilityInfo.incompatible("Type parameter number mismatch");
                 }
             }
@@ -116,13 +114,11 @@ public class OverridingUtil {
         }
 
         final Map<TypeConstructor, TypeConstructor> matchingTypeConstructors = new HashMap<TypeConstructor, TypeConstructor>();
-        for (int i = 0, typeParametersSize = superTypeParameters.size(); i < typeParametersSize; i++) {
-            TypeParameterDescriptor superTypeParameter = superTypeParameters.get(i);
-            TypeParameterDescriptor subTypeParameter = subTypeParameters.get(i);
-            matchingTypeConstructors.put(superTypeParameter.getTypeConstructor(), subTypeParameter.getTypeConstructor());
+        for (int i = 0; i < superTypeParameters.size(); i++) {
+            matchingTypeConstructors.put(superTypeParameters.get(i).getTypeConstructor(), subTypeParameters.get(i).getTypeConstructor());
         }
 
-        KotlinTypeChecker.TypeConstructorEquality localEqualityAxioms = new KotlinTypeChecker.TypeConstructorEquality() {
+        KotlinTypeChecker typeChecker = KotlinTypeChecker.withAxioms(new KotlinTypeChecker.TypeConstructorEquality() {
             @Override
             public boolean equals(@NotNull TypeConstructor a, @NotNull TypeConstructor b) {
                 if (equalityAxioms.equals(a, b)) return true;
@@ -134,22 +130,16 @@ public class OverridingUtil {
                 }
                 return true;
             }
-        };
+        });
 
-        for (int i = 0, typeParametersSize = superTypeParameters.size(); i < typeParametersSize; i++) {
-            TypeParameterDescriptor superTypeParameter = superTypeParameters.get(i);
-            TypeParameterDescriptor subTypeParameter = subTypeParameters.get(i);
-
-            if (!areTypesEquivalent(superTypeParameter.getUpperBoundsAsType(), subTypeParameter.getUpperBoundsAsType(), localEqualityAxioms)) {
+        for (int i = 0; i < superTypeParameters.size(); i++) {
+            if (!areTypeParametersEquivalent(superTypeParameters.get(i), subTypeParameters.get(i), typeChecker)) {
                 return OverrideCompatibilityInfo.incompatible("Type parameter bounds mismatch");
             }
         }
 
-        for (int i = 0, unsubstitutedValueParametersSize = superValueParameters.size(); i < unsubstitutedValueParametersSize; i++) {
-            KotlinType superValueParameter = superValueParameters.get(i);
-            KotlinType subValueParameter = subValueParameters.get(i);
-
-            if (!areTypesEquivalent(superValueParameter, subValueParameter, localEqualityAxioms)) {
+        for (int i = 0; i < superValueParameters.size(); i++) {
+            if (!areTypesEquivalent(superValueParameters.get(i), subValueParameters.get(i), typeChecker)) {
                 return OverrideCompatibilityInfo.incompatible("Value parameter type mismatch");
             }
         }
@@ -160,12 +150,11 @@ public class OverridingUtil {
 
             if (superReturnType != null && subReturnType != null) {
                 boolean bothErrors = subReturnType.isError() && superReturnType.isError();
-                if (!bothErrors && !KotlinTypeChecker.withAxioms(localEqualityAxioms).isSubtypeOf(subReturnType, superReturnType)) {
+                if (!bothErrors && !typeChecker.isSubtypeOf(subReturnType, superReturnType)) {
                     return OverrideCompatibilityInfo.conflict("Return type mismatch");
                 }
             }
         }
-
 
         for (ExternalOverridabilityCondition externalCondition : EXTERNAL_CONDITIONS) {
             if (!externalCondition.isOverridable(superDescriptor, subDescriptor)) {
@@ -195,12 +184,36 @@ public class OverridingUtil {
     private static boolean areTypesEquivalent(
             @NotNull KotlinType typeInSuper,
             @NotNull KotlinType typeInSub,
-            @NotNull KotlinTypeChecker.TypeConstructorEquality axioms
+            @NotNull KotlinTypeChecker typeChecker
     ) {
         boolean bothErrors = typeInSuper.isError() && typeInSub.isError();
-        if (!bothErrors && !KotlinTypeChecker.withAxioms(axioms).equalTypes(typeInSuper, typeInSub)) {
+        return bothErrors || typeChecker.equalTypes(typeInSuper, typeInSub);
+    }
+
+    // See JLS 8, §8.4.4 Generic Methods
+    // TODO: use TypeSubstitutor instead
+    private static boolean areTypeParametersEquivalent(
+            @NotNull TypeParameterDescriptor superTypeParameter,
+            @NotNull TypeParameterDescriptor subTypeParameter,
+            @NotNull KotlinTypeChecker typeChecker
+    ) {
+        List<KotlinType> superBounds = superTypeParameter.getUpperBounds();
+        List<KotlinType> subBounds = new ArrayList<KotlinType>(subTypeParameter.getUpperBounds());
+        if (superBounds.size() != subBounds.size()) return false;
+
+        outer:
+        for (KotlinType superBound : superBounds) {
+            ListIterator<KotlinType> it = subBounds.listIterator();
+            while (it.hasNext()) {
+                KotlinType subBound = it.next();
+                if (areTypesEquivalent(superBound, subBound, typeChecker)) {
+                    it.remove();
+                    continue outer;
+                }
+            }
             return false;
         }
+
         return true;
     }
 
@@ -532,7 +545,7 @@ public class OverridingUtil {
             CONFLICT,
         }
 
-        private static final OverrideCompatibilityInfo SUCCESS = new OverrideCompatibilityInfo(Result.OVERRIDABLE, "SUCCESS");
+        private static final OverrideCompatibilityInfo SUCCESS = new OverrideCompatibilityInfo(OVERRIDABLE, "SUCCESS");
 
         @NotNull
         public static OverrideCompatibilityInfo success() {
