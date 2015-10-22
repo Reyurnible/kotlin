@@ -42,7 +42,7 @@ class ReplOutputHandler(
 
     private var isBuildInfoChecked = false
     private val dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-    private val outputHighlighter = ReplOutputHighlighter(runner)
+    private val outputProcessor = ReplOutputProcessor(runner)
 
     override fun isSilentlyDestroyOnClose() = true
 
@@ -60,24 +60,24 @@ class ReplOutputHandler(
 
         when (outputType) {
             "INITIAL_PROMPT"  -> buildWarningIfNeededBeforeInit(content)
-            "HELP_PROMPT"     -> outputHighlighter.printHelp(content)
-            "USER_OUTPUT"     -> outputHighlighter.printUserOutput(content)
-            "REPL_RESULT"     -> outputHighlighter.printResultWithGutterIcon(content)
+            "HELP_PROMPT"     -> outputProcessor.printHelp(content)
+            "USER_OUTPUT"     -> outputProcessor.printUserOutput(content)
+            "REPL_RESULT"     -> outputProcessor.printResultWithGutterIcon(content)
             "READLINE_START"  -> runner.isReadLineMode = true
             "READLINE_END"    -> runner.isReadLineMode = false
             "REPL_INCOMPLETE",
-            "COMPILE_ERROR"   -> outputHighlighter.highlightCompilerErrors(createCompilerMessages(content))
-            "RUNTIME_ERROR"   -> outputHighlighter.printRuntimeError("${content.trim()}\n")
-            "INTERNAL_ERROR"  -> outputHighlighter.printInternalErrorMessage(content)
+            "COMPILE_ERROR"   -> outputProcessor.highlightCompilerErrors(createCompilerMessages(content))
+            "RUNTIME_ERROR"   -> outputProcessor.printRuntimeError("${content.trim()}\n")
+            "INTERNAL_ERROR"  -> outputProcessor.printInternalErrorMessage(content)
         }
     }
 
     private fun buildWarningIfNeededBeforeInit(content: String) {
         if (!isBuildInfoChecked) {
-            outputHighlighter.printBuildInfoWarningIfNeeded()
+            outputProcessor.printBuildInfoWarningIfNeeded()
             isBuildInfoChecked = true
         }
-        outputHighlighter.printInitialPrompt(content)
+        outputProcessor.printInitialPrompt(content)
     }
 
     private fun strToSource(s: String, encoding: Charset = Charsets.UTF_8) = InputSource(ByteArrayInputStream(s.toByteArray(encoding)))
