@@ -34,7 +34,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.builtIns
 import org.jetbrains.kotlin.types.TypeUtils
 import org.jetbrains.kotlin.types.typeUtil.isSubtypeOf
 
-private abstract class AbstractNativeAnnotationsChecker(private val requiredAnnotation: PredefinedAnnotation) : DeclarationChecker {
+public abstract class AbstractNativeAnnotationsChecker(private val requiredAnnotation: PredefinedAnnotation) : DeclarationChecker {
 
     open fun additionalCheck(declaration: KtNamedFunction, descriptor: FunctionDescriptor, diagnosticHolder: DiagnosticSink) {}
 
@@ -65,7 +65,7 @@ private abstract class AbstractNativeAnnotationsChecker(private val requiredAnno
 
 public class NativeInvokeChecker : AbstractNativeAnnotationsChecker(PredefinedAnnotation.NATIVE_INVOKE)
 
-private abstract class AbstractNativeIndexerChecker(
+public abstract class AbstractNativeIndexerChecker(
         requiredAnnotation: PredefinedAnnotation,
         private val indexerKind: String,
         private val requiredParametersCount: Int

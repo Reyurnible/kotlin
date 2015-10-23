@@ -32,7 +32,7 @@ import org.jetbrains.kotlin.types.KotlinType;
 
 import java.util.Collection;
 
-class KotlinLightClassForAnonymousDeclaration extends KotlinLightClassForExplicitDeclaration implements PsiAnonymousClass {
+public class KotlinLightClassForAnonymousDeclaration extends KotlinLightClassForExplicitDeclaration implements PsiAnonymousClass {
     private static final Logger LOG = Logger.getInstance(KotlinLightClassForAnonymousDeclaration.class);
 
     private SoftReference<PsiClassType> cachedBaseType = null;

@@ -843,7 +843,7 @@ private fun getReceiverExpressionType(resolvedCall: ResolvedCall<*>): KotlinType
     }
 }
 
-private class CompileTimeType<T>
+internal class CompileTimeType<T>
 
 internal val BYTE = CompileTimeType<Byte>()
 internal val SHORT = CompileTimeType<Short>()

@@ -22,7 +22,7 @@ public interface ValueDescriptor {
     public fun getValue(): Any
 }
 
-internal interface ComponentDescriptor : ValueDescriptor {
+public interface ComponentDescriptor : ValueDescriptor {
     fun getRegistrations(): Iterable<Type>
     fun getDependencies(context: ValueResolveContext): Collection<Type>
     val shouldInjectProperties: Boolean

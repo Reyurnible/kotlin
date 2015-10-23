@@ -37,7 +37,7 @@ class InvalidCardinalityException(message: String, val descriptors: Collection<C
 
 public class ComponentStorage(val myId: String) : ValueResolver {
     var state = ComponentStorageState.Initial
-    val registry = ComponentRegistry()
+    private val registry = ComponentRegistry()
     val descriptors = LinkedHashSet<ComponentDescriptor>()
     val dependencies = MultiMap.createLinkedSet<ComponentDescriptor, Type>()
 

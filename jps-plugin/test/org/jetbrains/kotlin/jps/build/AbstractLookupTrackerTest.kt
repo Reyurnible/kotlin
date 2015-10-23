@@ -34,7 +34,7 @@ abstract class AbstractLookupTrackerTest : AbstractIncrementalJpsTest(
     // ignore KDoc like comments which starts with `/**`, example: /** text */
     val COMMENT_WITH_LOOKUP_INFO = "/\\*[^*]+\\*/".toRegex()
 
-    override fun createLookupTracker() = TestLookupTracker()
+    override fun createLookupTracker(): LookupTracker = TestLookupTracker()
 
     override fun checkLookups(lookupTracker: LookupTracker) {
         if (lookupTracker !is TestLookupTracker) throw AssertionError("Expected TestLookupTracker, but: ${lookupTracker.javaClass}")

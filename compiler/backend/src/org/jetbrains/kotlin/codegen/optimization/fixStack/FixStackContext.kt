@@ -31,7 +31,7 @@ import org.jetbrains.org.objectweb.asm.tree.*
 import java.util.*
 import kotlin.properties.Delegates
 
-internal class FixStackContext(val methodNode: MethodNode) {
+public class FixStackContext internal constructor(val methodNode: MethodNode) {
     val breakContinueGotoNodes = linkedSetOf<JumpInsnNode>()
     val fakeAlwaysTrueIfeqMarkers = arrayListOf<AbstractInsnNode>()
     val fakeAlwaysFalseIfeqMarkers = arrayListOf<AbstractInsnNode>()

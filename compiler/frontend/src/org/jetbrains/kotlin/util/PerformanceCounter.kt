@@ -167,7 +167,7 @@ private class ReenterableCounter(name: String): PerformanceCounter(name) {
  *
  *  Main and excluded methods may be reenterable.
  */
-private class CounterWithExclude(name: String, vararg excludedCounters: PerformanceCounter): PerformanceCounter(name) {
+public class CounterWithExclude(name: String, vararg excludedCounters: PerformanceCounter): PerformanceCounter(name) {
     companion object {
         private val counterToCallStackMapThreadLocal = ThreadLocal<MutableMap<CounterWithExclude, CallStackWithTime>>()
 

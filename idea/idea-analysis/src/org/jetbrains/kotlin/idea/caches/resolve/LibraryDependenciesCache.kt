@@ -86,7 +86,7 @@ public class LibraryDependenciesCache(private val project: Project) {
         }!!
     }
 
-    private inner class LibraryUsageIndex {
+    public inner class LibraryUsageIndex internal constructor() {
         val modulesLibraryIsUsedIn: MultiMap<Library, Module> = MultiMap.createSet()
 
         init {

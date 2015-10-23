@@ -158,7 +158,7 @@ class CallableBuilder(val config: CallableBuilderConfiguration) {
     fun computeTypeCandidates(typeInfo: TypeInfo): List<TypeCandidate> =
             typeCandidates.getOrPut(typeInfo) { typeInfo.getPossibleTypes(this).map { TypeCandidate(it) } }
 
-    fun computeTypeCandidates(
+    private fun computeTypeCandidates(
             typeInfo: TypeInfo,
             substitutions: List<JetTypeSubstitution>,
             scope: KtScope): List<TypeCandidate> {

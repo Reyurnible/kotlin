@@ -337,7 +337,7 @@ class ExpressionDecomposer private constructor(
  *
  * For example, won't visit [JsBlock] statements, but will visit test expression of [JsWhile].
  */
-private open class JsExpressionVisitor() : JsVisitorWithContextImpl() {
+public open class JsExpressionVisitor() : JsVisitorWithContextImpl() {
 
     override fun visit(x: JsBlock, ctx: JsContext<*>): Boolean = false
     override fun visit(x: JsTry, ctx: JsContext<*>): Boolean = false
