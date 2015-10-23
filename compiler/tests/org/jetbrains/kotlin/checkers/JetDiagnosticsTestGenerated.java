@@ -13284,6 +13284,12 @@ public class JetDiagnosticsTestGenerated extends AbstractJetDiagnosticsTest {
                 doTest(fileName);
             }
 
+            @TestMetadata("privateSetter.kt")
+            public void testPrivateSetter() throws Exception {
+                String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/scopes/privateSetter.kt");
+                doTest(fileName);
+            }
+
             @TestMetadata("sameClassNameResolve.kt")
             public void testSameClassNameResolve() throws Exception {
                 String fileName = JetTestUtils.navigationMetadata("compiler/testData/diagnostics/tests/scopes/sameClassNameResolve.kt");
