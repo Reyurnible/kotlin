@@ -40,9 +40,7 @@ import org.jetbrains.kotlin.resolve.scopes.LexicalScope
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 import org.jetbrains.kotlin.storage.StorageManager
 import org.jetbrains.kotlin.types.*
-import org.jetbrains.kotlin.types.Variance.INVARIANT
-import org.jetbrains.kotlin.types.Variance.IN_VARIANCE
-import org.jetbrains.kotlin.types.Variance.OUT_VARIANCE
+import org.jetbrains.kotlin.types.Variance.*
 
 public class TypeResolver(
         private val annotationResolver: AnnotationResolver,
@@ -323,14 +321,12 @@ public class TypeResolver(
     }
 
     private fun getScopeForTypeParameter(c: TypeResolutionContext, typeParameterDescriptor: TypeParameterDescriptor): KtScope {
-        if (c.checkBounds) {
-            return typeParameterDescriptor.getUpperBoundsAsType().getMemberScope()
+        return if (c.checkBounds) {
+            typeParameterDescriptor.defaultType.memberScope
         }
-        else {
-            return LazyScopeAdapter(LockBasedStorageManager.NO_LOCKS.createLazyValue {
-                    typeParameterDescriptor.getUpperBoundsAsType().getMemberScope()
-            })
-        }
+        else LazyScopeAdapter(LockBasedStorageManager.NO_LOCKS.createLazyValue {
+            typeParameterDescriptor.defaultType.memberScope
+        })
     }
 
     private fun resolveTypeProjections(c: TypeResolutionContext, constructor: TypeConstructor, argumentElements: List<KtTypeProjection>): List<TypeProjection> {

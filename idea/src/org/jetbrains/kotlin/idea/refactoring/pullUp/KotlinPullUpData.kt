@@ -28,13 +28,10 @@ import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.scopes.DescriptorKindFilter
 import org.jetbrains.kotlin.resolve.scopes.utils.getDescriptorsFiltered
-import org.jetbrains.kotlin.types.TypeConstructor
-import org.jetbrains.kotlin.types.TypeProjection
-import org.jetbrains.kotlin.types.TypeProjectionImpl
-import org.jetbrains.kotlin.types.TypeSubstitutor
+import org.jetbrains.kotlin.types.*
 import org.jetbrains.kotlin.types.substitutions.getTypeSubstitution
 import org.jetbrains.kotlin.utils.keysToMap
-import java.util.LinkedHashMap
+import java.util.*
 
 class KotlinPullUpData(val sourceClass: KtClassOrObject,
                        val targetClass: PsiNamedElement,
@@ -59,7 +56,7 @@ class KotlinPullUpData(val sourceClass: KtClassOrObject,
         val substitution = LinkedHashMap<TypeConstructor, TypeProjection>()
 
         typeParametersInSourceClassContext.forEach {
-            substitution[it.typeConstructor] = TypeProjectionImpl(it.upperBoundsAsType)
+            substitution[it.typeConstructor] = TypeProjectionImpl(TypeIntersector.getUpperBoundsAsType(it))
         }
 
         val superClassSubstitution = getTypeSubstitution(targetClassDescriptor.defaultType, sourceClassDescriptor.defaultType)
