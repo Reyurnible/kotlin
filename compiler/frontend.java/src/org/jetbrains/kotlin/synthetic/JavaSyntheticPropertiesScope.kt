@@ -126,7 +126,7 @@ class JavaSyntheticPropertiesScope(storageManager: StorageManager, private val l
         val setMethod = memberScope.getFunctions(setMethodName, NoLookupLocation.FOR_ALREADY_TRACKED)
                 .singleOrNull { isGoodSetMethod(it, getMethod) }
 
-        val propertyType = getMethod.returnType ?: return result(null, possibleGetMethodNames, setMethodName)
+        val propertyType = getMethod.returnType!!
 
         val descriptor = MyPropertyDescriptor.create(ownerClass, getMethod.original, setMethod?.original, name, propertyType)
         return result(descriptor, possibleGetMethodNames, setMethodName);
