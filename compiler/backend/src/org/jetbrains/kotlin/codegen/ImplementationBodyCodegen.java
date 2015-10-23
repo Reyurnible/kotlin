@@ -846,13 +846,16 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
 
             if (state.getClassBuilderMode() != ClassBuilderMode.FULL) return;
 
-            // Invoke the object constructor but ignore the result because INSTANCE$ will be initialized in the first line of <init>
-            InstructionAdapter v = createOrGetClInitCodegen().v;
-            markLineNumberForSyntheticFunction(element, v);
-            v.anew(classAsmType);
-            v.invokespecial(classAsmType.getInternalName(), "<init>", "()V", false);
-            if (isCompanionObjectWithBackingFieldsInOuter(descriptor)) {
-                //We should load containing class to initialize companion fields
+            if (isNonCompanionObject(descriptor)) {
+                // Invoke the object constructor but ignore the result because INSTANCE$ will be initialized in the first line of <init>
+                InstructionAdapter v = createOrGetClInitCodegen().v;
+                markLineNumberForSyntheticFunction(element, v);
+                v.anew(classAsmType);
+                v.invokespecial(classAsmType.getInternalName(), "<init>", "()V", false);
+            } else {
+                assert isCompanionObject(descriptor) : "Expecting companion object, but " + descriptor;
+                InstructionAdapter v = createOrGetClInitCodegen().v;
+                //We should load containing class to initialize companion
                 StackValue companion = StackValue.singletonForCompanion(descriptor, typeMapper);
                 companion.put(companion.type, v);
                 AsmUtil.pop(v, companion.type);
@@ -927,8 +930,12 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
 
     private void generateCompanionObjectInitializer(@NotNull ClassDescriptor companionObject) {
         ExpressionCodegen codegen = createOrGetClInitCodegen();
-        StackValue.singletonForCompanion(companionObject, typeMapper)
-                .store(StackValue.singleton(companionObject, typeMapper), codegen.v, true);
+        FunctionDescriptor constructor = (FunctionDescriptor) context.accessibleDescriptor(
+                CollectionsKt.single(companionObject.getConstructors()), /* superCallExpression = */ null
+        );
+        generateMethodCallTo(constructor, null, codegen.v);
+        StackValue instance = StackValue.onStack(typeMapper.mapClass(companionObject));
+        StackValue.singletonForCompanion(companionObject, typeMapper).store(instance, codegen.v, true);
     }
 
     private void generatePrimaryConstructor(final DelegationFieldsInfo delegationFieldsInfo) {
