@@ -16,6 +16,7 @@
 
 package org.jetbrains.kotlin.maven;
 
+import com.intellij.util.ArrayUtil;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -26,6 +27,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.kotlin.cli.common.arguments.K2JVMCompilerArguments;
 import org.jetbrains.kotlin.cli.jvm.K2JVMCompiler;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -86,9 +89,9 @@ public class KotlinTestCompileMojo extends K2JVMCompileMojo {
     protected void configureSpecificCompilerArguments(@NotNull K2JVMCompilerArguments arguments) throws MojoExecutionException {
         module = testModule;
         classpath = testClasspath;
+        arguments.friendPaths = new String[] { output };
         output = testOutput;
         moduleName = testModuleName;
-
         super.configureSpecificCompilerArguments(arguments);
     }
 }

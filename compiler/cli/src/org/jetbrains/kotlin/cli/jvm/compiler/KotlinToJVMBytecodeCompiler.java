@@ -114,6 +114,7 @@ public class KotlinToJVMBytecodeCompiler {
             @NotNull List<Module> chunk,
             @NotNull File directory,
             @Nullable File jarPath,
+            @NotNull List<String> friendPaths,
             boolean jarRuntime
     ) {
         Map<Module, ClassFileFactory> outputFiles = Maps.newHashMap();
@@ -122,6 +123,10 @@ public class KotlinToJVMBytecodeCompiler {
 
         for (Module module: chunk) {
             ModuleVisibilityManager.SERVICE.getInstance(environment.getProject()).addModule(module);
+        }
+
+        for (String path : friendPaths) {
+            ModuleVisibilityManager.SERVICE.getInstance(environment.getProject()).addFriendPath(path);
         }
 
         String targetDescription = "in targets [" + Joiner.on(", ").join(Collections2.transform(chunk, new Function<Module, String>() {
@@ -215,8 +220,13 @@ public class KotlinToJVMBytecodeCompiler {
             @NotNull KotlinCoreEnvironment environment,
             @Nullable File jar,
             @Nullable File outputDir,
+            @NotNull List<String> friendPaths,
             boolean includeRuntime
     ) {
+
+        for (String path : friendPaths) {
+            ModuleVisibilityManager.SERVICE.getInstance(environment.getProject()).addFriendPath(path);
+        }
 
         GenerationState generationState = analyzeAndGenerate(environment);
         if (generationState == null) {

@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.idea.util
+package sample
 
-import org.jetbrains.kotlin.load.kotlin.ModuleVisibilityManager
-import org.jetbrains.kotlin.modules.Module
+// TODO change visibility for x and y to internal when accessors for backing fields will be fixed
+// For now we get java.lang.NoSuchMethodError: sample.ClassA.getX$access_from_test_to_internal_example_test()I
+internal data class ClassA(val x: Int, val y: Int)
 
-class IdeModuleVisibilityManagerImpl() : ModuleVisibilityManager {
-    override val chunk: Collection<Module> = emptyList()
-    override val friendPaths: Collection<String> = emptyList()
-    override fun addModule(module: Module) {}
-    override fun addFriendPath(path: String) {}
-}
+internal val xx = 100
+
+internal fun plusFun(x: Int, y: Int) = x + y

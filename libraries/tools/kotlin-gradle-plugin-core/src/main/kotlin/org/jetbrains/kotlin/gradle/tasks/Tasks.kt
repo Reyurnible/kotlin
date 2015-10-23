@@ -121,6 +121,19 @@ public open class KotlinCompile() : AbstractKotlinCompile<K2JVMCompilerArguments
         }
         getLogger().kotlinDebug("args.destination = ${args.destination}")
 
+        if (this.name == "compileTestKotlin") {
+            getLogger().kotlinDebug("try to determine the output directory of corresponding compileKotlin task")
+            val tasks = project.getTasksByName("compileKotlin", false)
+            getLogger().kotlinDebug("tasks for compileKotlin: ${tasks}")
+            if (tasks.size == 1) {
+                val task = tasks.firstOrNull() as? AbstractCompile
+                if (task != null) {
+                    getLogger().kotlinDebug("destinantion directory for production = ${task.destinationDir}")
+                    args.friendPaths = arrayOf(task.destinationDir.absolutePath)
+                }
+            }
+        }
+
         val extraProperties = getExtensions().getExtraProperties()
         args.pluginClasspaths = extraProperties.getOrNull<Array<String>>("compilerPluginClasspaths") ?: arrayOf()
         getLogger().kotlinDebug("args.pluginClasspaths = ${args.pluginClasspaths.joinToString(File.pathSeparator)}")

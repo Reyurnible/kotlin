@@ -14,14 +14,25 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.idea.util
+package demo
 
-import org.jetbrains.kotlin.load.kotlin.ModuleVisibilityManager
-import org.jetbrains.kotlin.modules.Module
+import sun.nio.cs.ext.Big5
+import sun.net.spi.nameservice.dns.DNSNameService
+import javax.crypto.Cipher
+import com.sun.crypto.provider.SunJCE
+import sun.nio.ByteBuffered
 
-class IdeModuleVisibilityManagerImpl() : ModuleVisibilityManager {
-    override val chunk: Collection<Module> = emptyList()
-    override val friendPaths: Collection<String> = emptyList()
-    override fun addModule(module: Module) {}
-    override fun addFriendPath(path: String) {}
+internal data class Data(val x: Int, val y: Int)
+
+internal val CONST = 100
+
+internal fun box(): String {
+    val a = Big5() // charsets.jar
+    val c = DNSNameService() // dnsns.ajr
+    val e : Cipher? = null // jce.jar
+    val f : SunJCE? = null // sunjce_provider.jar
+    val j : ByteBuffered? = null // rt.jar
+    return "OK"
 }
+
+

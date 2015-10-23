@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-package org.jetbrains.kotlin.idea.util
+package test.sample
 
-import org.jetbrains.kotlin.load.kotlin.ModuleVisibilityManager
-import org.jetbrains.kotlin.modules.Module
+import org.junit.Test as test
+import kotlin.test.*
+import sample.ClassA
+import sample.plusFun
+import sample.xx
 
-class IdeModuleVisibilityManagerImpl() : ModuleVisibilityManager {
-    override val chunk: Collection<Module> = emptyList()
-    override val friendPaths: Collection<String> = emptyList()
-    override fun addModule(module: Module) {}
-    override fun addFriendPath(path: String) {}
+open class SampleTest {
+
+    @test fun test(): Unit {
+        assertEquals(100, xx)
+        assertEquals(30, plusFun(10, 20))
+
+        val data = ClassA(100, 200)
+        assertEquals(100, data.x)
+        assertEquals(200, data.y)
+    }
 }

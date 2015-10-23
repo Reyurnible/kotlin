@@ -52,6 +52,10 @@ public class K2JVMCompilerArguments extends CommonCompilerArguments {
     public String moduleName;
 
     // Advanced options
+    @Argument(value = "Xfriend-path", description = "Path to output directories for friend modules, separated by commas")
+    @ValueDescription("<path[,]>")
+    public String[] friendPaths;
+
 
     @Argument(value = "Xno-call-assertions", description = "Don't generate not-null assertion after each invocation of method returning not-null")
     public boolean noCallAssertions;

@@ -58,7 +58,12 @@ class ModuleVisibilityHelperImpl : ModuleVisibilityHelper {
             return true
         }
 
+        moduleVisibilityManager.friendPaths.forEach {
+            if (isContainedByCompiledPartOfOurModule(what, File(it))) return true
+        }
+
         val modules = moduleVisibilityManager.chunk.toList()
+
         val outputDirectories = modules.map { File(it.getOutputDirectory()) }
         if (outputDirectories.isEmpty()) return isContainedByCompiledPartOfOurModule(what, null)
 
@@ -79,9 +84,14 @@ class ModuleVisibilityHelperImpl : ModuleVisibilityHelper {
  */
 class CliModuleVisibilityManagerImpl() : ModuleVisibilityManager, Disposable {
     override val chunk: MutableList<Module> = arrayListOf()
+    override val friendPaths: MutableList <String> = arrayListOf()
 
     override fun addModule(module: Module) {
         chunk.add(module)
+    }
+
+    override fun addFriendPath(path: String) {
+        friendPaths.add(path)
     }
 
     override fun dispose() {
