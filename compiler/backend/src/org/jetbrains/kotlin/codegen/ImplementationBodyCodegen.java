@@ -833,33 +833,22 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
     }
 
     private void generateFieldForSingleton() {
-        if (isEnumEntry(descriptor)) return;
+        if (isEnumEntry(descriptor) || isCompanionObject(descriptor)) return;
 
-        if (isObject(descriptor)) {
+        if (isNonCompanionObject(descriptor)) {
             StackValue.Field field = StackValue.singleton(descriptor, typeMapper);
             v.newField(JvmDeclarationOriginKt.OtherOrigin(myClass), ACC_PUBLIC | ACC_STATIC | ACC_FINAL, field.name, field.type.getDescriptor(), null, null);
 
-            if (isNonCompanionObject(descriptor)) {
-                StackValue.Field oldField = StackValue.oldSingleton(descriptor, typeMapper);
-                v.newField(JvmDeclarationOriginKt.OtherOrigin(myClass), ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_DEPRECATED, oldField.name, oldField.type.getDescriptor(), null, null);
-            }
+            StackValue.Field oldField = StackValue.oldSingleton(descriptor, typeMapper);
+            v.newField(JvmDeclarationOriginKt.OtherOrigin(myClass), ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_DEPRECATED, oldField.name, oldField.type.getDescriptor(), null, null);
 
             if (state.getClassBuilderMode() != ClassBuilderMode.FULL) return;
+            // Invoke the object constructor but ignore the result because INSTANCE$ will be initialized in the first line of <init>
+            InstructionAdapter v = createOrGetClInitCodegen().v;
+            markLineNumberForSyntheticFunction(element, v);
+            v.anew(classAsmType);
+            v.invokespecial(classAsmType.getInternalName(), "<init>", "()V", false);
 
-            if (isNonCompanionObject(descriptor)) {
-                // Invoke the object constructor but ignore the result because INSTANCE$ will be initialized in the first line of <init>
-                InstructionAdapter v = createOrGetClInitCodegen().v;
-                markLineNumberForSyntheticFunction(element, v);
-                v.anew(classAsmType);
-                v.invokespecial(classAsmType.getInternalName(), "<init>", "()V", false);
-            } else {
-                assert isCompanionObject(descriptor) : "Expecting companion object, but " + descriptor;
-                InstructionAdapter v = createOrGetClInitCodegen().v;
-                //We should load containing class to initialize companion
-                StackValue companion = StackValue.singletonForCompanion(descriptor, typeMapper);
-                companion.put(companion.type, v);
-                AsmUtil.pop(v, companion.type);
-            }
             return;
         }
 
@@ -871,7 +860,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         KtObjectDeclaration companionObject = CollectionsKt.firstOrNull(((KtClass) myClass).getCompanionObjects());
         assert companionObject != null : "Companion object not found: " + myClass.getText();
 
-        StackValue.Field field = StackValue.singletonForCompanion(companionObjectDescriptor, typeMapper);
+        StackValue.Field field = StackValue.singleton(companionObjectDescriptor, typeMapper);
         v.newField(JvmDeclarationOriginKt.OtherOrigin(companionObject), ACC_PUBLIC | ACC_STATIC | ACC_FINAL, field.name, field.type.getDescriptor(), null, null);
 
         if (state.getClassBuilderMode() != ClassBuilderMode.FULL) return;
@@ -935,7 +924,7 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         );
         generateMethodCallTo(constructor, null, codegen.v);
         StackValue instance = StackValue.onStack(typeMapper.mapClass(companionObject));
-        StackValue.singletonForCompanion(companionObject, typeMapper).store(instance, codegen.v, true);
+        StackValue.singleton(companionObject, typeMapper).store(instance, codegen.v, true);
     }
 
     private void generatePrimaryConstructor(final DelegationFieldsInfo delegationFieldsInfo) {
@@ -1004,11 +993,9 @@ public class ImplementationBodyCodegen extends ClassBodyCodegen {
         generateDelegatorToConstructorCall(iv, codegen, constructorDescriptor,
                                            getDelegationConstructorCall(bindingContext, constructorDescriptor));
 
-        if (isObject(descriptor)) {
+        if (isNonCompanionObject(descriptor)) {
             StackValue.singleton(descriptor, typeMapper).store(StackValue.LOCAL_0, iv);
-            if (isNonCompanionObject(descriptor)) {
-                StackValue.oldSingleton(descriptor, typeMapper).store(StackValue.LOCAL_0, iv);
-            }
+            StackValue.oldSingleton(descriptor, typeMapper).store(StackValue.LOCAL_0, iv);
         }
 
         for (KtDelegationSpecifier specifier : myClass.getDelegationSpecifiers()) {

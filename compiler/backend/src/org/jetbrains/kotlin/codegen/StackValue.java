@@ -578,10 +578,6 @@ public abstract class StackValue {
         return field(FieldInfo.createForSingleton(classDescriptor, typeMapper));
     }
 
-    public static Field singletonForCompanion(ClassDescriptor companionObject, JetTypeMapper typeMapper) {
-        return field(FieldInfo.createForCompanionSingleton(companionObject, typeMapper));
-    }
-
     public static Field oldSingleton(ClassDescriptor classDescriptor, JetTypeMapper typeMapper) {
         return field(FieldInfo.createForSingleton(classDescriptor, typeMapper, true));
     }
