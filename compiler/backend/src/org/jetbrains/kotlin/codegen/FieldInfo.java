@@ -40,7 +40,7 @@ public class FieldInfo {
 
     @NotNull
     public static FieldInfo createForSingleton(@NotNull ClassDescriptor classDescriptor, @NotNull JetTypeMapper typeMapper, boolean oldSingleton) {
-        if (!classDescriptor.getKind().isSingleton()) {
+        if (!classDescriptor.getKind().isSingleton() || DescriptorUtils.isEnumEntry(classDescriptor)) {
             throw new UnsupportedOperationException("Can't create singleton field for class: " + classDescriptor);
         }
         Type type = typeMapper.mapType(classDescriptor);
