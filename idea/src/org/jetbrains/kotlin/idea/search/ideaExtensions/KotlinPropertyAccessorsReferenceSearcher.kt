@@ -27,6 +27,7 @@ import com.intellij.util.Processor
 import org.jetbrains.kotlin.asJava.namedUnwrappedElement
 import org.jetbrains.kotlin.idea.KotlinFileType
 import org.jetbrains.kotlin.idea.caches.resolve.getJavaMethodDescriptor
+import org.jetbrains.kotlin.incremental.components.LookupTracker
 import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.storage.LockBasedStorageManager
 import org.jetbrains.kotlin.synthetic.JavaSyntheticPropertiesScope
@@ -54,7 +55,7 @@ public class KotlinPropertyAccessorsReferenceSearcher() : QueryExecutorBase<PsiR
         }
 
         val functionDescriptor = method.getJavaMethodDescriptor() ?: return null
-        val syntheticExtensionsScope = JavaSyntheticPropertiesScope(LockBasedStorageManager())
+        val syntheticExtensionsScope = JavaSyntheticPropertiesScope(LockBasedStorageManager(), LookupTracker.DO_NOTHING)
         val property = SyntheticJavaPropertyDescriptor.findByGetterOrSetter(functionDescriptor, syntheticExtensionsScope) ?: return null
         return property.getName().asString()
     }
