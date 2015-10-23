@@ -3,6 +3,6 @@ class A {
         private var r: Int = 1;
     }
 }
-// A and companion object constructors plus synthetic constructor for private one
-// 4 ALOAD 0
+// A and companion object constructor call
+// 3 ALOAD 0
 // 1 synthetic access\$getR
