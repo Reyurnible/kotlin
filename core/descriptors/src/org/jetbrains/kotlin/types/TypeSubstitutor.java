@@ -28,7 +28,6 @@ import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.resolve.calls.inference.CapturedTypeConstructorKt;
 import org.jetbrains.kotlin.resolve.scopes.SubstitutingScope;
 import org.jetbrains.kotlin.types.typeUtil.TypeUtilsKt;
-import org.jetbrains.kotlin.types.typesApproximation.CapturedTypeApproximationKt;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -106,10 +105,9 @@ public class TypeSubstitutor {
     @Nullable
     public TypeProjection substitute(@NotNull TypeProjection typeProjection) {
         TypeProjection substitutedTypeProjection = substituteWithoutApproximation(typeProjection);
-        if (!substitution.approximateCapturedTypes()) {
-            return substitutedTypeProjection;
-        }
-        return CapturedTypeApproximationKt.approximateCapturedTypesIfNecessary(substitutedTypeProjection);
+        return substitution.shouldApproximateCapturedTypes()
+               ? substitution.approximateCapturedTypesIfNecessary(substitutedTypeProjection)
+               : substitutedTypeProjection;
     }
 
     @Nullable

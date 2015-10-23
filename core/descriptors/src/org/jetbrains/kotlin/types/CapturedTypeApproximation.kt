@@ -59,15 +59,15 @@ private fun TypeProjection.toTypeArgument(typeParameter: TypeParameterDescriptor
             Variance.OUT_VARIANCE -> TypeArgument(typeParameter, typeParameter.builtIns.nothingType, type)
         }
 
-public fun approximateCapturedTypesIfNecessary(typeProjection: TypeProjection?): TypeProjection? {
+public fun approximateCapturedTypes(typeProjection: TypeProjection?): TypeProjection? {
     if (typeProjection == null) return null
-    if (typeProjection.isStarProjection()) return typeProjection
+    if (typeProjection.isStarProjection) return typeProjection
 
-    val type = typeProjection.getType()
+    val type = typeProjection.type
     if (!TypeUtils.containsSpecialType(type, { it.isCaptured() })) {
         return typeProjection
     }
-    val howThisTypeIsUsed = typeProjection.getProjectionKind()
+    val howThisTypeIsUsed = typeProjection.projectionKind
     if (howThisTypeIsUsed == Variance.OUT_VARIANCE) {
         // only 'return' type containing captured types should be over-approximated
         val approximation = approximateCapturedTypes(type)

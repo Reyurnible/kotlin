@@ -31,7 +31,7 @@ import org.jetbrains.kotlin.test.JetTestUtils
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.resolve.calls.inference.createCapturedType
 import org.jetbrains.kotlin.diagnostics.Severity
-import org.jetbrains.kotlin.types.typesApproximation.approximateCapturedTypesIfNecessary
+import org.jetbrains.kotlin.types.typesApproximation.approximateCapturedTypes
 import java.util.ArrayList
 import org.jetbrains.kotlin.types.TypeProjection
 import org.jetbrains.kotlin.descriptors.TypeParameterDescriptor
@@ -111,7 +111,7 @@ public class CapturedTypeApproximationTest() : JetLiteFixture() {
                     val typeWithCapturedType = typeSubstitutor.substituteWithoutApproximation(TypeProjectionImpl(INVARIANT, type!!))!!.getType()
 
                     val (lower, upper) = approximateCapturedTypes(typeWithCapturedType)
-                    val substitution = approximateCapturedTypesIfNecessary(TypeProjectionImpl(INVARIANT, typeWithCapturedType))
+                    val substitution = approximateCapturedTypes(TypeProjectionImpl(INVARIANT, typeWithCapturedType))
 
                     append("  ")
                     for (typeParameter in testSubstitution.keySet()) {

@@ -36,7 +36,15 @@ public class DisjointKeysUnionTypeSubstitution private constructor(
 
     override fun isEmpty() = false
 
-    override fun approximateCapturedTypes() = first.approximateCapturedTypes() || second.approximateCapturedTypes()
+    override fun shouldApproximateCapturedTypes() = first.shouldApproximateCapturedTypes() || second.shouldApproximateCapturedTypes()
+
+    override fun approximateCapturedTypesIfNecessary(typeProjection: TypeProjection?): TypeProjection? {
+        return when {
+            first.shouldApproximateCapturedTypes() -> first.approximateCapturedTypesIfNecessary(typeProjection)
+            second.shouldApproximateCapturedTypes() -> second.approximateCapturedTypesIfNecessary(typeProjection)
+            else -> super.approximateCapturedTypesIfNecessary(typeProjection)
+        }
+    }
 
     override fun filterAnnotations(annotations: Annotations) = second.filterAnnotations(first.filterAnnotations(annotations))
 }

@@ -39,6 +39,7 @@ import org.jetbrains.kotlin.types.typeUtil.builtIns
 import org.jetbrains.kotlin.types.typeUtil.getNestedArguments
 import org.jetbrains.kotlin.types.typeUtil.isDefaultBound
 import org.jetbrains.kotlin.types.typeUtil.makeNotNullable
+import org.jetbrains.kotlin.types.typesApproximation.approximateCapturedTypes
 import java.util.*
 
 public class ConstraintSystemImpl : ConstraintSystem {
@@ -545,7 +546,10 @@ private fun TypeSubstitutor.setApproximateCapturedTypes(): TypeSubstitutor {
 }
 
 private class SubstitutionWithCapturedTypeApproximation(substitution: TypeSubstitution) : DelegatedTypeSubstitution(substitution) {
-    override fun approximateCapturedTypes() = true
+    override fun shouldApproximateCapturedTypes() = true
+
+    override fun approximateCapturedTypesIfNecessary(typeProjection: TypeProjection?) =
+            approximateCapturedTypes(typeProjection)
 }
 
 class SubstitutionFilteringInternalResolveAnnotations(substitution: TypeSubstitution) : DelegatedTypeSubstitution(substitution) {
