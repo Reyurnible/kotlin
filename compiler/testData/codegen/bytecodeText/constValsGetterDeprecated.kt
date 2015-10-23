@@ -15,4 +15,4 @@ class B {
   3 others are for getCONST_VAL
 */
 
-// 4 DEPRECATED
+// 5 DEPRECATED
