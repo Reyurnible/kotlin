@@ -135,7 +135,8 @@ public fun String.substring(beginIndex: Int): String = (this as java.lang.String
 public fun String.substring(beginIndex: Int, endIndex: Int): String = (this as java.lang.String).substring(beginIndex, endIndex)
 
 @Deprecated("Mangled name", level = DeprecationLevel.HIDDEN)
-public fun String.substring(beginIndex: Int, endIndex: Int): String = (this as java.lang.String).substring(beginIndex, endIndex)
+@kotlin.jvm.JvmName("substring")
+public fun String.substring1(beginIndex: Int, endIndex: Int): String = (this as java.lang.String).substring(beginIndex, endIndex)
 
 /**
  * Returns `true` if this string starts with the specified prefix.
