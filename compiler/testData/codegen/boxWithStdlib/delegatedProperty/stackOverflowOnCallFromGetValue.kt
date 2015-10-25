@@ -1,5 +1,3 @@
-// FULL_JDK
-
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty0
 import kotlin.test.assertFailsWith
@@ -13,8 +11,10 @@ class Delegate {
 val prop: String by Delegate()
 
 fun box(): String {
+    // TODO
+
     assertFailsWith(
-            StackOverflowError::class.java,
+            IllegalStateException::class.java,
             "Getting the property value with .get() from getValue is effectively an endless recursion and should fail"
     ) {
         prop
