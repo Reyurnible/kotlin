@@ -242,30 +242,42 @@ class MissingInvokeAutoImportFix(expression: KtExpression, diagnostic: Diagnosti
     }
 }
 
-class MissingArrayAccessorAutoImportFix(element: KtArrayAccessExpression, diagnostic: Diagnostic) :
-        AutoImportFixBase<KtArrayAccessExpression>(element, diagnostic) {
-    override fun getImportNames(): Collection<Name> {
-        val name = if (diagnostics.first().factory == Errors.NO_GET_METHOD) {
-            OperatorNameConventions.GET
-        }
-        else {
-            OperatorNameConventions.SET
-        }
-        return name.singletonList()
-    }
+class MissingArrayAccessorAutoImportFix(element: KtArrayAccessExpression, val names: Collection<Name>, val promoteWithHint: Boolean) :
+        AutoImportFixBase<KtArrayAccessExpression>(element, emptyList()) {
+    override fun getImportNames() = names
 
     override fun getCallTypeAndReceiver() =
             CallTypeAndReceiver.OPERATOR(element.arrayExpression!!)
 
     override fun getSupportedErrors() = ERRORS
 
+    override fun showHint(editor: Editor) = promoteWithHint && super.showHint(editor)
+
     companion object : JetSingleIntentionActionFactory() {
+        fun importName(diagnostic: Diagnostic): Name? {
+            return when (diagnostic.factory) {
+                Errors.OPERATOR_MODIFIER_REQUIRED -> {
+                    val operatorDescriptor = Errors.OPERATOR_MODIFIER_REQUIRED.cast(diagnostic).a
+                    val name = operatorDescriptor.name
+                    return if (name == OperatorNameConventions.GET || name == OperatorNameConventions.SET) name else null
+                }
+
+                Errors.NO_GET_METHOD -> OperatorNameConventions.GET
+                Errors.NO_SET_METHOD -> OperatorNameConventions.SET
+                else -> throw IllegalStateException("Should be called for other diagnostics")
+            }
+        }
+
         override fun createAction(diagnostic: Diagnostic): KotlinQuickFixAction<KtArrayAccessExpression>? {
-            assert(diagnostic.factory == Errors.NO_GET_METHOD || diagnostic.factory == Errors.NO_SET_METHOD)
+            val factory = diagnostic.factory
+            assert(factory == Errors.OPERATOR_MODIFIER_REQUIRED || factory == Errors.NO_GET_METHOD || factory == Errors.NO_SET_METHOD)
 
             val element = diagnostic.psiElement
             if (element is KtArrayAccessExpression && element.arrayExpression != null) {
-                return MissingArrayAccessorAutoImportFix(element, diagnostic)
+                val name = importName(diagnostic)
+                if (name != null) {
+                    return MissingArrayAccessorAutoImportFix(element, name.singletonList(), factory != Errors.OPERATOR_MODIFIER_REQUIRED)
+                }
             }
 
             return null

@@ -327,6 +327,8 @@ public class QuickFixRegistrar : QuickFixContributor {
         NON_CONST_VAL_USED_IN_CONSTANT_EXPRESSION.registerFactory(ConstFixFactory)
 
         OPERATOR_MODIFIER_REQUIRED.registerFactory(AddModifierFixFactory(KtTokens.OPERATOR_KEYWORD))
+        OPERATOR_MODIFIER_REQUIRED.registerFactory(MissingArrayAccessorAutoImportFix)
+
         INFIX_MODIFIER_REQUIRED.registerFactory(AddModifierFixFactory(KtTokens.INFIX_KEYWORD))
 
         UNDERSCORE_IS_RESERVED.registerFactory(RenameUnderscoreFix)
