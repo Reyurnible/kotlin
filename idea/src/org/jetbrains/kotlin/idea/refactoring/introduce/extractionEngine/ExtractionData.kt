@@ -23,10 +23,12 @@ import com.intellij.psi.PsiNameIdentifierOwner
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.descriptors.DeclarationDescriptor
 import org.jetbrains.kotlin.descriptors.ValueParameterDescriptor
+import org.jetbrains.kotlin.idea.caches.resolve.getResolutionFacade
 import org.jetbrains.kotlin.idea.codeInsight.DescriptorToSourceUtilsIde
 import org.jetbrains.kotlin.idea.codeInsight.JetFileReferencesResolver
 import org.jetbrains.kotlin.idea.core.compareDescriptors
 import org.jetbrains.kotlin.idea.core.refactoring.getContextForContainingDeclarationBody
+import org.jetbrains.kotlin.idea.util.getResolutionScope
 import org.jetbrains.kotlin.idea.util.psi.patternMatching.JetPsiRange
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
@@ -178,8 +180,8 @@ data class ExtractionData(
             return typeInfo.dataFlowInfo.getPossibleTypes(DataFlowValueFactory.createDataFlowValue(it))
         }
 
-        val type = resolvedCall?.resultingDescriptor?.returnType ?: return emptySet()
-        val containingDescriptor = context[BindingContext.LEXICAL_SCOPE, expression]?.ownerDescriptor ?: return emptySet()
+        val type = resolvedCall.resultingDescriptor?.returnType ?: return emptySet()
+        val containingDescriptor = expression.getResolutionScope(context, expression.getResolutionFacade()).ownerDescriptor
         val dataFlowValue = DataFlowValueFactory.createDataFlowValue(expression, type, context, containingDescriptor)
         return typeInfo.dataFlowInfo.getPossibleTypes(dataFlowValue)
     }
